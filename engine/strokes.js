@@ -33,10 +33,13 @@ export const STROKES = {
   N: S({ kind: 'arc', bulge: 'R', heavy: false, sound: 'n' }),
   NG: S({ kind: 'arc', bulge: 'R', heavy: true, sound: 'ng' }),
   L: S({ kind: 'arc', bulge: 'L', heavy: false, up: true, sound: 'l (upward)' }),
+  // downward L (Instructor ch. XIX: after N / NG, and initial L after a vowel
+  // before a horizontal, e.g. electric): same curve written top to bottom
+  LD: S({ kind: 'arc', bulge: 'R', heavy: false, sound: 'l (downward)' }),
   RAY: S({ kind: 'line', heavy: false, up: true, sound: 'r (Ray, upward)' }),
   AR: S({ kind: 'arc', bulge: 'L', heavy: false, sound: 'r (Ar, downward)' }),
   W: S({ kind: 'line', heavy: false, up: true, hook: 'L', sound: 'w (upward)' }),
-  WH: S({ kind: 'line', heavy: false, up: true, hook: 'L', bigHook: true, geom: 'W', sound: 'w with enlarged hook' }),
+  WH: S({ kind: 'line', heavy: false, up: true, hook: 'L', bigHook: true, geom: 'WH', sound: 'w with enlarged hook' }),
   // Wel: upward L with a large initial hook on the inside of the curve (w + l)
   WL: S({ kind: 'arc', bulge: 'L', heavy: false, up: true, hook: 'R', hookR: 0.13, geom: 'L', sound: 'wl (Wel, hooked upward L)' }),
   Y: S({ kind: 'line', heavy: false, up: true, hook: 'R', sound: 'y (upward)' }),
@@ -51,7 +54,7 @@ const N_SAMPLES = 32;
  *  initial hooks sit behind the start (the pen arrives at pts[0]); final
  *  hooks run on past the end (the pen leaves at the last point). `sweep` in
  *  degrees (180 = semicircle). */
-export function hookPts(p, tan, n, r, atEnd, sweep = 180) {
+export function hookPts(p, tan, n, r, atEnd, sweep = 180, tail = 0) {
   const c = add(p, mul(n, r));
   const out = [];
   const K = 20;
@@ -59,6 +62,8 @@ export function hookPts(p, tan, n, r, atEnd, sweep = 180) {
     const th = (deg(sweep) * i) / K;
     out.push(add(c, add(mul(n, -r * Math.cos(th)), mul(tan, (atEnd ? 1 : -1) * r * Math.sin(th)))));
   }
+  // printed final hooks run back alongside the stroke: straight return leg
+  if (tail > 0) { const q = out[out.length - 1]; for (let i = 1; i <= 4; i++) out.push(add(q, mul(tan, (atEnd ? -1 : 1) * tail * i / 4))); }
   return atEnd ? out : out.reverse();
 }
 
@@ -69,8 +74,8 @@ export function buildStroke(name, { length = 'normal', heavy, reverse = false } 
   const def = STROKES[name];
   if (!def) throw new Error(`unknown stroke ${name}`);
   const g = GEOM[def.geom || name];
-  const L = (length === 'double' && def.kind === 'arc' ? CAL.doubleCurve : (LENGTHS[length] ?? length)) * g.len;
-  const dir = fromAngle(g.angle);
+  const L = (length === 'double' && def.kind === 'arc' ? CAL.doubleCurve : length === 'half' ? (CAL.halfBy[def.geom || name] ?? CAL.half) : length === 'double' ? (CAL.doubleBy[def.geom || name] ?? CAL.double) : (LENGTHS[length] ?? length)) * g.len;
+  const dir = fromAngle(length === 'double' && g.angleDouble != null ? g.angleDouble : g.angle);
   const start = v(0, 0);
   const end = mul(dir, L);
   const pts = [];

@@ -217,7 +217,7 @@ function decorate(s, it, pre, post, rules) {
     } else {
       const R = fc ? (fc === 'ss' ? CAL.bigCircle : CAL.circle) : 0;
       const hrr = fc ? Math.max(hr, R + 0.035) : hr;
-      const hp = hookPts(end, s.t1, n, hrr, true);
+      const hp = hookPts(end, s.t1, n, hrr, true, 180, fc ? 0 : CAL.hookTail * hrr);
       ex.push({ type: 'polyline', pts: hp, heavy: false }); exit = hp[hp.length - 1];
       if (fc) { ex.push({ type: 'circle', c: add(end, mul(n, hrr)), r: R, heavy: false }); circleN = n; circleC = add(end, mul(n, hrr)); circleR = R; rules.push('circle written inside the final hook'); }
     }
@@ -228,7 +228,7 @@ function decorate(s, it, pre, post, rules) {
     else if (initialSide) { n = dot(perpL(s.t1), initialSide) > 0 ? perpR(s.t1) : perpL(s.t1); rules.push('shun opposite the initial attachment'); }
     else if (['T', 'D', 'J'].includes(s.name)) { n = rightHandN(s.t1); rules.push('shun on the right-hand side of T/D/J'); }
     else n = motionN(s.t1, 'R');
-    const hp = hookPts(end, s.t1, n, CAL.shun, true);
+    const hp = hookPts(end, s.t1, n, CAL.shun, true, 180, fc ? 0 : CAL.shunTail * CAL.shun);
     ex.push({ type: 'polyline', pts: hp, heavy: false }); exit = hp[hp.length - 1];
     if (fc) { circleR = CAL.circle; const c = add(end, mul(n, CAL.shun)); ex.push({ type: 'circle', c, r: circleR * 0.85, heavy: false }); }
   } else if (fc || fl) {

@@ -9,6 +9,11 @@
 //         in.ernet.dli.2015.459783: same lists, book pp 291-292
 //   C24 = Course in Isaac Pitman Shorthand, Canadian New Era ed. (1924),
 //         archive.org courseinisaacpit0000isaa: lesson list pp 178-179
+//   B24 = Pitman's Shorthand Instructor, 2024 printing (private copy, used
+//         only to check outlines; nothing from it is reproduced here):
+//         grammalogue lists pp 289-292, contractions pp 293-296; theory
+//         pp 40 (large circle), 144 (expect), 150 (dollar). It omits
+//         marconigram from the contractions list.
 //
 // Each row: [form, description, words-by-position, options]
 //   form   : token list for the stroke composer, or {sign: kind, heavy}
@@ -16,7 +21,8 @@
 //   words  : "1 had; 2 do; 3 different, difference" (position: 1 above,
 //            2 on, 3 through the line; horizontal 3rd = below the line)
 //   options: { u: 'reason' } UNSURE, { nys: 'reason' } NOT YET SUPPORTED,
-//            { p: page } (default book page of I20/W55), { c24: false }
+//            { p: page } (default book page of I20/W55), { c24: false },
+//            { b24: page | false } (2024 check page; default = I20 page)
 //
 // Token grammar: NAME[:half|:double][*][!][+r|+l][+n|+f|+shun]
 //   * thickened, ! reversed curve, +r/+l initial hook, +n/+f/+shun final hook;
@@ -38,11 +44,11 @@ const ROWS = [
   [['B'], 'B', '2 be; 3 to be', {}],
   [['s', 'B'], 'circle s + B', '2 subject, subjected', {}],
   [['s', 'B+f'], 'circle s + B with final f/v hook', '2 subjective', {}],
-  [['s', 'B+shun'], 'circle s + B + shun hook (opposite the circle)', '2 subjection', { u: 'shun hook drawn smaller and B longer than in print' }],
+  [['s', 'B+shun'], 'circle s + B + shun hook (opposite the circle)', '2 subjection', {}],
   [['B+r'], 'B with initial r hook (br)', '1 liberty; 2 member, remember, remembered; 3 number, numbered', {}],
   [['B+l'], 'B with initial l hook (bl)', '3 belief, believe, believed', {}],
   [['B+f'], 'B with final f hook', '1 behalf', {}],
-  [['B+n'], 'B with final n hook', '2 been', { u: 'final n hook drawn smaller than in print' }],
+  [['B+n'], 'B with final n hook', '2 been', {}],
   [['B+l+n', 's'], 'B with l hook and circle s on the n-hook side (bl-ns)', '1 balance', {}],
   [['B:half+l'], 'half-length B, initial l hook (blt/bld)', '2 build, building', {}],
   // ---- T / D
@@ -61,7 +67,7 @@ const ROWS = [
   [['D+r'], 'D with initial r hook (dr)', '1 Dr., doctor; 2 dear; 3 during', {}],
   [['D+l'], 'D with initial l hook (dl)', '2 deliver, delivered, delivery', {}],
   [['D+l+n', 's'], 'D with l hook and circle s on the n-hook side (dl-ns)', '2 deliverance', {}],
-  [['D+f'], 'D with final f/v hook', '1 advantage', { u: 'print D is heavier with a larger final hook than the engine draws' }],
+  [['D+f'], 'D with final f/v hook', '1 advantage', {}],
   [['D+f'], 'D with final f/v hook', '3 difficult', {}],
   // ---- CH / J
   [['CH'], 'CH', '1 much; 2 which', {}],
@@ -74,27 +80,27 @@ const ROWS = [
   [['J+n'], 'J with final n hook', '2 general, generally', {}],
   [['J+n', 's', 'shun'], 'J + circle on the n-hook side (ns) + small shun hook', '2 generalization', { c24: false }],
   [['J', 's', 'shun'], 'J + circle s + small shun hook on the other side', '2 justification', { c24: false }],
-  [['J:half+n'], 'half-length J with final n hook', '1 gentleman', { u: 'print sample has stray marks; compact form not matched', c24: false }],
-  [['J:half+n'], 'half-length J with final n hook', '2 gentlemen', { u: 'final n hook larger in print', c24: false }],
+  [['J:half+n'], 'half-length J with final n hook', '1 gentleman', { c24: false }],
+  [['J:half+n'], 'half-length J with final n hook', '2 gentlemen', { c24: false }],
   // ---- K / G
   [['K'], 'K', '1 can; 2 come', {}],
   [['K', 's'], 'K + circle s', '1 because', {}],
   [['K+r'], 'K with initial r hook (kr)', '2 care', {}],
   [['K:half+r'], 'half-length K, initial r hook', '1 accord, according', { c24: false }],
-  [['K:half+r'], 'half-length K, initial r hook', '2 cared', { u: 'half-length K drawn longer than in print', c24: false }],
+  [['K:half+r'], 'half-length K, initial r hook', '2 cared', { c24: false }],
   [['K+l'], 'K with initial l hook (kl)', '1 call; 2 equal, equally', {}],
   [['K:half+l'], 'half-length K, initial l hook', '1 called', { c24: false }],
-  [['K:half+l'], 'half-length K, initial l hook', '2 equalled, cold', { u: 'half-length K drawn longer than in print', c24: false }],
+  [['K:half+l'], 'half-length K, initial l hook', '2 equalled, cold', { c24: false }],
   [['s', 'K+l'], 'circle s inside the l hook of K (skl)', '2 school', { c24: false }],
   [['s', 'K:half+l'], 'circle s inside the l hook of half-length K', '2 schooled', { c24: false }],
   [['K:half'], 'half-length K', '1 quite; 2 could', {}],
-  [['K+n'], 'K with final n hook', '1 cannot', { u: 'final hook on K curls back further in print', c24: false }],
-  [['IN', 's', 'K+r+f'], 'large in- hook + circle (skr) + K + small final hook', '1 inscribe, inscribed', { u: 'final mark on K read as an f hook; too small in print to confirm', c24: false }],
-  [['IN', 's', 'K+r+shun'], 'large in- hook + circle (skr) + K + shun hook', '1 inscription', { u: 'in- hook + circle drawn larger than print (shun side matches)', c24: false }],
+  [['K+n'], 'K with final n hook', '1 cannot', { c24: false }],
+  [['IN', 's', 'K+r'], 'large in- hook + circle (skr) + K', '1 inscribe, inscribed', { u: '2024 print shows no final hook (1920 shows a faint tick); in- hook + circle cluster drawn open, print is a compact closed blob', c24: false }],
+  [['IN', 's', 'K+r+shun'], 'large in- hook + circle (skr) + K + shun hook', '1 inscription', { u: 'in- hook + circle cluster drawn open and larger than print (shun hook matches)', c24: false }],
   [['G'], 'G', '1 go; 2 give, given', {}],
   [['s', 'G'], 'circle s + G', '1 signify, signified, significant', {}],
   [['s', 'G', 's'], 'circle s + G + circle s', '1 significance', {}],
-  [['s', 'G+shun'], 'circle s + G + shun hook (opposite the circle)', '1 signification', { u: 'shun hook drawn smaller than in print', c24: false }],
+  [['s', 'G+shun'], 'circle s + G + shun hook (opposite the circle)', '1 signification', { c24: false }],
   [['G:half+r'], 'half-length G, initial r hook', '1 guard; 2 great', { c24: false }],
   [['G:half+l'], 'half-length G, initial l hook', '2 gold', { c24: false }],
   // ---- F / V / TH / DH
@@ -117,7 +123,7 @@ const ROWS = [
   [['DH:double!+r'], 'reversed DH with small initial hook, double length (THr-r)', '3 therefore', { p: P2 }],
   // ---- S / Z / SH / ZH
   [{ sign: 'circle' }, 'small circle s', '1 has, as; 2 his, is', { p: P2 }],
-  [{ sign: 'bigcircle' }, 'large circle (ses)', '1 as is; 2 is as', { u: 'large circle size not checked against print (no print sample cropped)', p: 'C24 178' }],
+  [{ sign: 'bigcircle' }, 'large circle (ses)', '1 as is; 2 is as', { p: 'C24 178', b24: 40 }],
   [['st'], 'st loop', '2 first', { p: P2 }],
   [['Z'], 'Z', '2 was; 3 whose', { p: P2 }],
   [['SH_UP'], 'SH (written upward when alone; looks the same)', '2 shall, shalt; 3 wish', { p: P2 }],
@@ -136,9 +142,9 @@ const ROWS = [
   [['MP', 's'], 'MP + circle s', '1 impossible', { p: P2, c24: false }],
   [['N'], 'N', '1 in, any; 3 own', { p: P2 }],
   [['N', 's'], 'N + circle s', '1 influence', { p: P2 }],
-  [['N', 'ss'], 'N + large circle (ses)', '1 influences', { u: 'large circle size not checked against print (no print sample cropped)', p: 'C24 178' }],
+  [['N', 'ss'], 'N + large circle (ses)', '1 influences', { u: '1924 course only; not in the 2024 lists, large circle size not checked against print', p: 'C24 178', b24: false }],
   [['N', 'st'], 'N + st loop', '1 influenced', { p: P2 }],
-  [['N', 'st'], 'N + st loop', '2 next', { u: 'st loop drawn smaller than in print', p: P2 }],
+  [['N', 'st'], 'N + st loop', '2 next', { p: P2 }],
   [['N+r'], 'N with small initial hook (nr)', '1 nor; 2 near', { p: P2 }],
   [['N+n'], 'N with final n hook', '2 opinion', { p: P2 }],
   [['N+r+n'], 'N with initial r hook and final n hook', '1 northern', { p: P2 }],
@@ -154,8 +160,8 @@ const ROWS = [
   [['RAY', 'ss'], 'Ray + large circle', '3 ourselves', { p: P2 }],
   [['RAY:double'], 'Ray, double length', '2 rather, writer', { p: P2, c24: false }],
   [['W'], 'W', '2 we', { p: P2 }],
-  [['WH'], 'W with enlarged initial hook', '2 whether', { u: 'enlarged W hook still smaller and rounder than in print', p: P2, c24: false }],
-  [['W:double+n'], 'W, double length, small final hook', '2 wonderful, wonderfully', { u: 'doubled W: print hook and stroke length still differ', p: P2, c24: false }],
+  [['WH'], 'W with enlarged initial hook', '2 whether', { p: P2, c24: false }],
+  [['W:double+n'], 'W, double length, small final hook', '2 wonderful, wonderfully', { p: P2, c24: false }],
   // ---- vowel logograms (I20 p 17, list p 292)
   [{ sign: 'dot' }, 'light dot', '1 a, an; 2 the', { p: P2 }],
   [{ sign: 'dot', heavy: true }, 'heavy dot', '1 ah!; 2 aye, eh?', { p: P2, c24: false }],
@@ -170,13 +176,13 @@ const ROWS = [
   [{ sign: 'semiL' }, 'small semicircle opening right', '1 with; 2 when', { p: P2 }],
   [{ sign: 'semiR' }, 'small semicircle opening left', '1 what; 2 would', { p: P2 }],
   [{ sign: 'cap' }, 'small semicircle opening down', '1 beyond; 2 you', { p: P2 }],
-  [{ sign: 'angle' }, 'small right-angle sign', '1 why', { u: 'tiny sign; the print sample is too small to compare', p: P2 }],
+  [{ sign: 'angle' }, 'small right-angle sign', '1 why', { p: P2 }],
   // ---- 1924 Canadian course only (forms read from the 1924 lesson list)
-  [['D'], 'logogram (1924 course): D', '1 dollar', { u: '1924 course only (300-dpi scan): drawn as D sitting on the line; position against "do" not settled', p: 'C24 179', i20: false }],
-  [['D', 's'], 'logogram (1924 course): D + circle s', '1 dollars', { u: '1924 course only (300-dpi scan): read as D + circle s; not overlay-checked', p: 'C24 179', i20: false }],
-  [['K', 's', 'P'], 'contraction (1924 course): K + circle + P', '1 expect, expected', { u: '1924 course only (300-dpi scan): K, circle s, P read from print; not overlay-checked', p: 'C24 179', i20: false }],
-  [['N', 'K', 's', 'P'], 'contraction (1924 course): N + K + circle + P', '1 unexpected', { u: '1924 course only (300-dpi scan): N, K, circle s, P read from print; not overlay-checked', p: 'C24 179', i20: false }],
-  [['K', 'N', 'J:half'], 'contraction (1924 course): K + N + half J', '1 acknowledged', { u: '1924 course only (300-dpi scan): read as acknowledge with the J halved for -d; small print, not overlay-checked', p: 'C24 179', i20: false }],
+  [['D'], 'logogram (1924 course): D', '1 dollar', { p: 'C24 179', i20: false, b24: 150 }],
+  [['D', 's'], 'logogram (1924 course): D + circle s', '1 dollars', { p: 'C24 179', i20: false, b24: 150 }],
+  [['K', 's', 'P'], 'contraction (1924 course): K + circle + P', '1 expect, expected', { p: 'C24 179', i20: false, b24: 144 }],
+  [['N', 'K', 's', 'P'], 'contraction (1924 course): N + K + circle + P', '1 unexpected', { u: '1924 course only (300-dpi scan); the 2024 book has the word only in longhand, so not checked against it', p: 'C24 179', i20: false, b24: false }],
+  [['K', 'N', 'J:half'], 'contraction (1924 course): K + N + half J', '1 acknowledged', { u: '1924 course only (300-dpi scan): acknowledge with the J halved for -d; the 2024 book has the word only in longhand, so not checked against it', p: 'C24 179', i20: false, b24: false }],
 ];
 
 // Contractions (I20 pp 293-296, alphabetical). Word list only: these are
@@ -212,6 +218,7 @@ export function grammalogueEntries() {
       if (typeof page === 'string') src.push(page);
       const c24 = o.c24 !== false && words.some((w) => !NOT_C24.has(w));
       if (c24 && !src.some((s) => s.startsWith('C24'))) src.push('C24 pp.178-179');
+      if (o.b24 !== false && (o.b24 ?? (typeof page === 'number' ? page : null)) != null) src.push(`B24 p.${o.b24 ?? page}`);
       const status = !form ? 'nys' : o.nys ? 'nys' : o.u ? 'unsure' : 'ok';
       out.push({
         id: slug(words[0]) + '_' + pos, kind: 'grammalogue', words, pos, desc,
@@ -230,7 +237,7 @@ export function grammalogueEntries() {
         desc: f ? 'contraction: ' + f[0].join(' ') : 'contraction (multi-stroke short form)',
         tokens: f ? f[0] : null, sign: null, status: !f ? 'nys' : why ? 'unsure' : 'ok',
         reason: !f ? 'contraction outline not yet encoded' : why || '',
-        src: [`I20 p.${page}`, ...(C24_CONTRACTIONS.has(w) ? ['C24 pp.178-179'] : [])],
+        src: [`I20 p.${page}`, ...(C24_CONTRACTIONS.has(w) ? ['C24 pp.178-179'] : []), ...(w === 'marconigram' ? [] : [`B24 p.${page}`])],
       });
     }
   }

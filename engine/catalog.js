@@ -7,7 +7,7 @@ import { SAMPLES } from './words.js';
 import { grammalogueEntries } from './grammalogues.js';
 
 export const posName = { 1: 'above line', 2: 'on line', 3: 'through line' };
-const strokeLabel = { RAY: 'Ray', AR: 'Ar', H_UP: 'H up', H_DOWN: 'H down', SH_UP: 'SH up', WL: 'Wel', MP: 'MP', WH: 'W (large hook)' };
+const strokeLabel = { RAY: 'Ray', AR: 'Ar', H_UP: 'H up', H_DOWN: 'H down', SH_UP: 'SH up', WL: 'Wel', MP: 'MP', WH: 'W (large hook)', LD: 'L down' };
 const sl = (n) => { const [b, l] = n.split(':'); return (strokeLabel[b] || b) + (l ? ` (${l})` : ''); };
 
 export function buildSample(s) {
