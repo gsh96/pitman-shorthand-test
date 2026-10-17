@@ -16,15 +16,26 @@ ul{list-style:none;margin:0;padding:0}li{display:flex;gap:10px;padding:5px 0;bor
 .ic{flex:0 0 22px;height:22px;border-radius:5px;display:grid;place-items:center;font-size:14px;font-weight:700;color:#fff}
 .done .ic{background:var(--g)}.done .lb{color:var(--g)}
 .wip .ic{background:var(--w)}.todo .ic{border:2px solid var(--t)}
+.tg{display:inline-flex;margin:14px 0 2px;background:#e2e8f0;border-radius:8px;padding:3px}.tg button{border:0;background:none;padding:7px 14px;border-radius:6px;font:inherit;font-size:14px;cursor:pointer;color:#334155;transition:background .15s}.tg button.on{background:#fff;box-shadow:0 1px 2px #0002;font-weight:600}.tag{font-size:11px;color:#64748b;background:#f1f5f9;border-radius:4px;padding:1px 6px;margin-left:4px;white-space:nowrap}.done .tag{color:#64748b}
 </style></head><body>
 <header><h1>Pitman Shorthand App — Project Tracker</h1><p id="up"></p></header>
 <div class="wrap"><div id="tot"></div><div id="ph"></div></div>
 <script src="tracker-data.js"></script>
 <script>
-const T=window.TRACKER,ic={done:"✓",wip:"…",todo:""};let all=0,dn=0,H="";
-T.phases.forEach((p,i)=>{let n=0,d=0,g="";p.groups.forEach(gr=>{g+=`<h3>${gr.name}</h3><ul>`;gr.items.forEach(([s,t])=>{n++;if(s=="done")d++;g+=`<li class="${s}"><span class="ic">${ic[s]}</span><span class="lb">${t}</span></li>`});g+="</ul>"});
-all+=n;dn+=d;const pc=Math.round(d/n*100);const open=p.groups.some(gr=>gr.items.some(x=>x[0]!="done"))&&(H.indexOf("open")<0)?"open":"";
-H+=`<details ${open}><summary><div class="ph"><span>${p.title}</span><span class="pct">${d}/${n} · ${pc}%</span></div><div class="goal">${p.goal}</div><div class="bar"><i style="width:${pc}%"></i></div></summary><div class="body">${g}</div></details>`});
-document.getElementById("ph").innerHTML=H;document.getElementById("up").textContent="Last updated "+T.updated;
-const pc=Math.round(dn/all*100);document.getElementById("tot").innerHTML=`<b>Overall: ${dn} of ${all} tasks done (${pc}%)</b><div class="bar" style="margin-top:6px"><i style="width:${pc}%"></i></div><div class="legend"><span style="color:var(--g)">✓ Done</span><span style="color:var(--w)">… In progress</span><span style="color:#6b7280">☐ To do</span></div>`;
+const T=window.TRACKER,ic={done:"✓",wip:"…",todo:""};
+const PH={};T.phases.forEach(p=>PH[p.id]=p.title.split("—")[0].trim());
+const items=[];T.phases.forEach(p=>p.groups.forEach(g=>g.items.forEach(([s,t,c])=>items.push({s,t,cat:c||g.cat,ph:p.id,grp:g.name}))));
+function li(x,tag){return `<li class="${x.s}"><span class="ic">${ic[x.s]}</span><span class="lb">${x.t}${tag?` <span class="tag">${tag}</span>`:""}</span></li>`}
+function sec(title,sub,list,body,first){const n=list.length,d=list.filter(x=>x.s=="done").length,pc=n?Math.round(d/n*100):0;
+return `<details ${first?"open":""}><summary><div class="ph"><span>${title}</span><span class="pct">${d}/${n} · ${pc}%</span></div>${sub?`<div class="goal">${sub}</div>`:""}<div class="bar"><i style="width:${pc}%"></i></div></summary><div class="body">${body}</div></details>`}
+function phaseView(){let H="",f=1;T.phases.forEach(p=>{let b="";const L=[];p.groups.forEach(g=>{b+=`<h3>${g.name}</h3><ul>`;items.filter(x=>x.ph==p.id&&x.grp==g.name).forEach(x=>{L.push(x);b+=li(x,x.cat)});b+="</ul>"});
+const o=f&&L.some(x=>x.s!="done");if(o)f=0;H+=sec(p.title,p.goal,L,b,o)});return H}
+function catView(){let H="",f=1;T.categories.forEach(c=>{const L=items.filter(x=>x.cat==c);if(!L.length)return;let b="";
+T.phases.forEach(p=>{const M=L.filter(x=>x.ph==p.id);if(!M.length)return;b+=`<h3>${p.title}</h3><ul>`+M.map(x=>li(x)).join("")+"</ul>"});
+const o=f&&L.some(x=>x.s!="done");if(o)f=0;H+=sec(c,"",L,b,o)});return H}
+function show(v){document.getElementById("ph").innerHTML=v=="cat"?catView():phaseView();document.querySelectorAll(".tg button").forEach(b=>b.classList.toggle("on",b.dataset.v==v));try{localStorage.trackerView=v}catch(e){}}
+const all=items.length,dn=items.filter(x=>x.s=="done").length,pc=Math.round(dn/all*100);
+document.getElementById("up").textContent="Last updated "+T.updated;
+document.getElementById("tot").innerHTML=`<b>Overall: ${dn} of ${all} tasks done (${pc}%)</b><div class="bar" style="margin-top:6px"><i style="width:${pc}%"></i></div><div class="legend"><span style="color:var(--g)">✓ Done</span><span style="color:var(--w)">… In progress</span><span style="color:#6b7280">☐ To do</span></div><div class="tg"><button data-v="cat" onclick="show('cat')">By category</button><button data-v="phase" onclick="show('phase')">By phase</button></div>`;
+let v="cat";try{v=localStorage.trackerView||"cat"}catch(e){}show(v);
 </script></body></html>
