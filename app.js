@@ -51,7 +51,7 @@ $('#search').addEventListener('submit', (e) => { e.preventDefault(); show($('#q'
 const gstate = { pos: 'all', kind: 'grammalogue', q: '' };
 const gsvg = new Map();
 function gramSvg(g) {
-  if (!gsvg.has(g.id)) gsvg.set(g.id, responsive(svgDoc(180, 190, cell(g.outline, { x: 0, y: 0, w: 180, h: 190, title: '', note: [], lineY: 0.62, frame: false }))));
+  if (!gsvg.has(g.id)) gsvg.set(g.id, responsive(svgDoc(180, 190, cell(g.outline, { x: 0, y: 0, w: 180, h: 190, title: '', note: [], lineY: 0.62, frame: false, fitTop: 8, fitBottom: 8 }))));
   return gsvg.get(g.id);
 }
 function renderGrams() {
@@ -60,7 +60,7 @@ function renderGrams() {
     && (gstate.pos === 'all' || String(g.pos) === gstate.pos)
     && (!q || g.words.some((w) => w.toLowerCase().includes(q)) || g.desc.toLowerCase().includes(q)));
   const n = (st) => list.filter((g) => g.status === st).length;
-  $('#gcount').textContent = `${list.length} shown · ${n('ok')} drawn · ${n('unsure')} unsure · ${n('nys')} not yet supported`;
+  $('#gcount').textContent = `${list.length} shown · ${n('ok')} confirmed · ${n('unsure')} unsure · ${n('nys')} not yet supported`;
   $('#ggrid').innerHTML = list.map((g) => `<button class="gcard ${g.status}" data-id="${esc(g.id)}" title="${esc(g.desc)}">
     ${g.status === 'nys' ? '<div class="nodraw">not drawn yet</div>' : `<div class="gsvg">${gramSvg(g)}</div>`}
     <div class="gw">${esc(g.word)}</div>

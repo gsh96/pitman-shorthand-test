@@ -2,8 +2,10 @@
 // width; heavy straights are thick lines; heavy curves are filled outlines
 // tapered at both ends (as in printed Pitman).
 import { sub, perpL, norm } from './geometry.js';
+import { CAL } from './calibration.js';
 
-export const STYLE = { k: 72, light: 2.2, heavy: 6.5, ink: '#111' };
+// line widths follow the measured print proportions (calibration.js)
+export const STYLE = { k: 72, light: +(CAL.light * 72).toFixed(2), heavy: +(CAL.heavy * 72).toFixed(2), ink: '#111' };
 
 const f = (n) => +n.toFixed(2);
 const P = (p, o) => `${f(o.x + p.x * STYLE.k)},${f(o.y - p.y * STYLE.k)}`;
@@ -63,7 +65,7 @@ export function bbox(elements) {
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 /** One labelled cell with a ruled writing line. Returns an SVG <g>. */
-export function cell(outline, { x, y, w, h, title, note, unsure, flag = 'UNSURE', lineY = 0.58, ruled = true, frame = true }) {
+export function cell(outline, { x, y, w, h, title, note, unsure, flag = 'UNSURE', lineY = 0.58, ruled = true, frame = true, fitTop = 62, fitBottom = 92 }) {
   const empty = !outline.elements.length;
   const bb = empty ? { x0: 0, x1: 0 } : bbox(outline.elements);
   const ly = y + h * lineY;
@@ -71,7 +73,16 @@ export function cell(outline, { x, y, w, h, title, note, unsure, flag = 'UNSURE'
   let g = `<g>`;
   if (frame) g += `<rect x="${x + 4}" y="${y + 4}" width="${w - 8}" height="${h - 8}" rx="8" fill="#fff" stroke="${unsure ? '#d9822b' : '#d0d4da'}" stroke-width="${unsure ? 2 : 1}"/>`;
   if (ruled) g += `<line x1="${x + 18}" y1="${ly}" x2="${x + w - 18}" y2="${ly}" stroke="#6fa8dc" stroke-width="1.3"/>`;
-  g += elementsToSvg(outline.elements, o);
+  // shrink long outlines (contractions) to fit the card
+  let sc = 1;
+  if (!empty) {
+    const k = STYLE.k, up = Math.max(10, ly - (y + fitTop)), down = Math.max(10, y + h - fitBottom - ly);
+    sc = Math.min(1, (w - 24) / Math.max(1e-6, (bb.x1 - bb.x0) * k));
+    if (bb.y1 > 0) sc = Math.min(sc, up / (bb.y1 * k));
+    if (bb.y0 < 0) sc = Math.min(sc, down / (-bb.y0 * k));
+  }
+  const cx = x + w / 2;
+  g += sc < 1 ? `<g transform="translate(${cx} ${ly}) scale(${sc.toFixed(3)}) translate(${-cx} ${-ly})">${elementsToSvg(outline.elements, o)}</g>` : elementsToSvg(outline.elements, o);
   g += `<text x="${x + w / 2}" y="${y + 36}" text-anchor="middle" font-family="DejaVu Sans" font-size="${Math.max(11, Math.min(22, Math.floor((w - 24) / (String(title).length * 0.74))))}" font-weight="bold" fill="#111">${esc(title)}</text>`;
   if (unsure) g += `<text x="${x + w / 2}" y="${y + 54}" text-anchor="middle" font-family="DejaVu Sans" font-size="12" font-weight="bold" fill="${flag === 'UNSURE' ? '#c0392b' : '#d9822b'}">${esc(flag)}</text>`;
   if (empty) g += `<text x="${x + w / 2}" y="${ly - 14}" text-anchor="middle" font-family="DejaVu Sans" font-size="12" font-style="italic" fill="#999">not drawn yet</text>`;
