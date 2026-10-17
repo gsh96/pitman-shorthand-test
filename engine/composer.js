@@ -22,10 +22,18 @@ import { buildStroke, translateStroke, endOf, startOf, pointAt, isHorizontal } f
 import { VOWELS, isVowel } from './vowels.js';
 
 export const DIM = {
-  dotLight: 0.042, dotHeavy: 0.066, dotOffset: 0.17,
+  dotLight: 0.05, dotHeavy: 0.072, dotOffset: 0.17,
   dashIn: 0.1, dashOut: 0.3, circleS: 0.075, tick: 0.3,
   placeT: { 1: 0.1, 2: 0.5, 3: 0.9 },
-  signY: { 1: 0.85, 2: 0.12, 3: -0.35 }, // detached logograms
+  // detached logograms (dots, dashes, ticks, circle). Measured against the
+  // printed grammalogue lists of the New Era Instructor (1920 / 1955) and the
+  // 1924 Canadian New Era course: 1st position = mark clearly above the line
+  // (its lowest point ~3/4 of a stroke up), 2nd position = mark resting ON
+  // the line, 3rd position = through the line. Dashes slant like "\" at
+  // ~45 deg; ticks (and/should, awe/who) slope at ~45 deg; marks are about
+  // 0.4 of a full stroke long.
+  signBase: { 1: 0.75, 2: 0.0, 3: -0.2 },
+  signLen: 0.4, signGap: 0.01,
 };
 
 function parse(tok) {
@@ -147,19 +155,27 @@ export function composeOutline(tokens, opts = {}) {
   return { elements: shift(elements, v(0, dy)), strokes: strokes.map((s) => s.name), rules, position };
 }
 
-/** Detached logogram signs (dot/dash/tick/circle) written in position 1/2/3. */
-export function composeSign(kind, { heavy = false, pos = 2, angle = -60 } = {}) {
-  const y = DIM.signY[pos];
-  const c = v(0, y);
+/** Detached logogram signs written in position 1/2/3.
+ *  kind: 'dot' | 'dash' (slanting "\\") | 'vdash' (vertical) | 'tick'
+ *  (straight mark written at `angle`; ticks start at their lower end) | 'circle'.
+ *  The mark is placed so its LOWEST point sits at DIM.signBase[pos]. */
+export function composeSign(kind, { heavy = false, pos = 2, angle } = {}) {
+  const base = DIM.signBase[pos] + (pos === 2 ? DIM.signGap : 0);
+  const L = DIM.signLen;
   let el;
-  if (kind === 'dot') el = { type: 'dot', c, r: heavy ? DIM.dotHeavy : DIM.dotLight };
-  else if (kind === 'dash') {
-    const d = mul(fromAngle(angle), 0.13);
-    el = { type: 'line', a: sub(c, d), b: add(c, d), heavy, cap: 'round' };
-  } else if (kind === 'tick') {
-    const a = v(0, pos === 2 ? 0.04 : y);
-    el = { type: 'line', a, b: add(a, mul(fromAngle(angle), DIM.tick)), heavy, cap: 'round' };
-  } else if (kind === 'circle') el = { type: 'circle', c: v(0, pos === 2 ? DIM.circleS + 0.02 : y), r: DIM.circleS, heavy: false };
+  if (kind === 'dot') {
+    const r = heavy ? DIM.dotHeavy : DIM.dotLight;
+    el = { type: 'dot', c: v(0, base + r), r };
+  } else if (kind === 'circle') {
+    el = { type: 'circle', c: v(0, base + DIM.circleS), r: DIM.circleS, heavy: false };
+  } else {
+    const ang = angle ?? (kind === 'vdash' ? 90 : kind === 'dash' ? -45 : 45);
+    const d = mul(fromAngle(ang), L);
+    // start point chosen so the lower end of the mark is at `base`
+    const cap = (heavy ? 0.036 : 0.015) * Math.abs(d.y) / L; // round line cap
+    const a = d.y >= 0 ? v(0, base + cap) : v(0, base + cap - d.y);
+    el = { type: 'line', a, b: add(a, d), heavy, cap: 'round' };
+  }
   return { elements: [el], strokes: [], rules: [], position: pos };
 }
 

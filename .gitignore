@@ -1,0 +1,5 @@
+# Local-only reference material (book scans / crops) must never be published
+ref/
+*.pdf
+book-*.png
+fix-compare.png

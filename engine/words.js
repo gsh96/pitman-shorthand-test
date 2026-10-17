@@ -18,20 +18,25 @@ export const SAMPLES = [
   { word: 'fade', tokens: ['F', 'ay', 'D'] },
   { word: 'pays', tokens: ['P', 'ay', 's'] },
   { word: 'pay the', tokens: ['P', 'ay', 'THE'], extra: 'tick-the phrase' },
-  { word: 'he', tokens: ['H', 'ee'], unsure: 'grammalogue form unverified; drawn as vocalised downward H' },
-  // grammalogues (logograms)
-  { word: 'a / an', sign: ['dot', { heavy: false, pos: 1 }], note: 'light dot, 1st pos.' },
-  { word: 'the', sign: ['dot', { heavy: false, pos: 2 }], note: 'light dot, on line', unsure: 'position (on line) from secondary source' },
-  { word: 'and', sign: ['tick', { heavy: false, pos: 2, angle: 30 }], note: 'light tick, upward', unsure: 'height relative to line' },
-  { word: 'of', sign: ['dash', { heavy: false, pos: 1 }], note: 'light dash, 1st pos.', unsure: 'slant of dash' },
-  { word: 'to', sign: ['dash', { heavy: false, pos: 2 }], note: 'light dash, on line', unsure: 'slant and position' },
-  { word: 'all', sign: ['dash', { heavy: true, pos: 1 }], note: 'heavy dash, 1st pos.', unsure: 'slant of dash' },
-  { word: 'two / too', sign: ['dash', { heavy: true, pos: 2 }], note: 'heavy dash, on line', unsure: 'slant and position' },
-  { word: 'it', tokens: ['T'], position: 3, gram: true, unsure: 'position (3rd) not verified' },
-  { word: 'be', tokens: ['B'], position: 2, gram: true, unsure: 'position not verified' },
+  // grammalogues (logograms). Verified against three public-domain New Era
+  // sources: Pitman's Shorthand Instructor, New Era ed. (1920, archive.org
+  // pitmansshorthand00pitm, book pp 17, 289-292); Wheeler 1955 Instructor
+  // (archive.org in.ernet.dli.2015.459783, book pp 17, 289-292); Canadian New
+  // Era Course 1924 (archive.org courseinisaacpit0000isaa, book pp 178-179).
+  { word: 'a / an', sign: ['dot', { heavy: false, pos: 1 }], note: 'light dot, above line' },
+  { word: 'the', sign: ['dot', { heavy: false, pos: 2 }], note: 'light dot, on line' },
+  { word: 'he', sign: ['vdash', { heavy: true, pos: 2 }], note: 'heavy upright dash, on line' },
+  { word: 'and', sign: ['tick', { heavy: false, pos: 1 }], note: 'light tick (up), above line' },
+  { word: 'of', sign: ['dash', { heavy: false, pos: 1 }], note: 'light dash, above line' },
+  { word: 'to', sign: ['dash', { heavy: false, pos: 2 }], note: 'light dash, on line' },
+  { word: 'all', sign: ['dash', { heavy: true, pos: 1 }], note: 'heavy dash, above line' },
+  { word: 'two / too', sign: ['dash', { heavy: true, pos: 2 }], note: 'heavy dash, on line' },
+  { word: 'it', tokens: ['T'], position: 2, gram: true },
+  { word: 'be', tokens: ['B'], position: 2, gram: true },
   { word: 'do', tokens: ['D'], position: 2, gram: true },
-  { word: 'which', tokens: ['CH'], position: 2, gram: true, unsure: 'position not verified' },
-  { word: 'have', tokens: ['V'], position: 1, gram: true, unsure: 'V logogram & position not verified' },
-  { word: 'will', tokens: ['L'], position: 2, gram: true, unsure: 'L logogram & position not verified' },
+  { word: 'which', tokens: ['CH'], position: 2, gram: true },
+  { word: 'have', tokens: ['V'], position: 2, gram: true },
   { word: 'is / his', sign: ['circle', { pos: 2 }], note: 'small circle s, on line' },
+  // not a grammalogue in any of the three sources above
+  { word: 'will', tokens: ['WL', 'i'], position: 3, extra: 'full outline (not a grammalogue)', unsure: 'not in the New Era grammalogue lists, so written in full as Wel (hooked upward L) + short i; hook shape, vowel and position still to be confirmed' },
 ];

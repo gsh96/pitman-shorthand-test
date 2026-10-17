@@ -40,6 +40,8 @@ export const STROKES = {
   RAY: S({ kind: 'line', angle: 30, heavy: false, up: true, sound: 'r (Ray, upward)' }),
   AR: S({ kind: 'arc', angle: -60, bulge: 'L', heavy: false, sound: 'r (Ar, downward)' }),
   W: S({ kind: 'line', angle: 60, heavy: false, up: true, hook: 'L', sound: 'w (upward)' }),
+  // Wel: upward L with a large initial hook on the inside of the curve (w + l)
+  WL: S({ kind: 'arc', angle: 60, bulge: 'L', heavy: false, up: true, hook: 'R', hookR: 0.13, sound: 'wl (Wel, hooked upward L)' }),
   Y: S({ kind: 'line', angle: 60, heavy: false, up: true, hook: 'R', sound: 'y (upward)' }),
   H_UP: S({ kind: 'line', angle: 60, heavy: false, up: true, circle: true, sound: 'h (upward)' }),
   H_DOWN: S({ kind: 'line', angle: -120, heavy: false, circle: true, sound: 'h (downward)' }),
@@ -77,11 +79,12 @@ export function buildStroke(name, { length = 'normal' } = {}) {
   if (def.hook) {
     // W/Y: small initial hook; W on the left of the stroke, Y on the right
     const n = def.hook === 'L' ? perpL(dir) : perpR(dir);
-    const c = add(start, mul(n, r));
+    const hr = def.hookR ?? r;
+    const c = add(start, mul(n, hr));
     const hook = [];
     for (let i = 0; i <= 16; i++) {
       const th = (Math.PI * i) / 16;
-      hook.push(add(c, add(mul(n, r * Math.cos(th)), mul(dir, -r * Math.sin(th)))));
+      hook.push(add(c, add(mul(n, hr * Math.cos(th)), mul(dir, -hr * Math.sin(th)))));
     }
     extras.push({ type: 'polyline', pts: hook, heavy: false });
   }
