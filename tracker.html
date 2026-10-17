@@ -1,0 +1,30 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pitman App — Project Tracker</title>
+<style>
+:root{--g:#16a34a;--w:#d97706;--t:#9ca3af;--bg:#f8fafc;--card:#fff;--tx:#111827}
+*{box-sizing:border-box}body{margin:0;font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--tx)}
+header{padding:20px 16px;background:#0f172a;color:#fff}header h1{margin:0;font-size:22px}header p{margin:4px 0 0;opacity:.75;font-size:13px}
+.wrap{max-width:900px;margin:0 auto;padding:16px}
+.bar{height:10px;background:#e5e7eb;border-radius:6px;overflow:hidden}.bar i{display:block;height:100%;background:var(--g)}
+.legend{display:flex;gap:16px;font-size:13px;margin:10px 0 0;flex-wrap:wrap}
+details{background:var(--card);border-radius:10px;margin:12px 0;box-shadow:0 1px 3px #0001}
+summary{cursor:pointer;padding:14px 16px;font-weight:600;list-style:none}summary::-webkit-details-marker{display:none}
+.ph{display:flex;justify-content:space-between;gap:12px;align-items:center}.pct{font-size:13px;color:#555;white-space:nowrap}
+.goal{font-weight:400;font-size:13px;color:#555;margin:2px 0 8px}
+.body{padding:0 16px 14px}h3{font-size:14px;margin:14px 0 6px;color:#334155}
+ul{list-style:none;margin:0;padding:0}li{display:flex;gap:10px;padding:5px 0;border-bottom:1px solid #f1f5f9}
+.ic{flex:0 0 22px;height:22px;border-radius:5px;display:grid;place-items:center;font-size:14px;font-weight:700;color:#fff}
+.done .ic{background:var(--g)}.done .lb{color:var(--g)}
+.wip .ic{background:var(--w)}.todo .ic{border:2px solid var(--t)}
+</style></head><body>
+<header><h1>Pitman Shorthand App — Project Tracker</h1><p id="up"></p></header>
+<div class="wrap"><div id="tot"></div><div id="ph"></div></div>
+<script src="tracker-data.js"></script>
+<script>
+const T=window.TRACKER,ic={done:"✓",wip:"…",todo:""};let all=0,dn=0,H="";
+T.phases.forEach((p,i)=>{let n=0,d=0,g="";p.groups.forEach(gr=>{g+=`<h3>${gr.name}</h3><ul>`;gr.items.forEach(([s,t])=>{n++;if(s=="done")d++;g+=`<li class="${s}"><span class="ic">${ic[s]}</span><span class="lb">${t}</span></li>`});g+="</ul>"});
+all+=n;dn+=d;const pc=Math.round(d/n*100);const open=p.groups.some(gr=>gr.items.some(x=>x[0]!="done"))&&(H.indexOf("open")<0)?"open":"";
+H+=`<details ${open}><summary><div class="ph"><span>${p.title}</span><span class="pct">${d}/${n} · ${pc}%</span></div><div class="goal">${p.goal}</div><div class="bar"><i style="width:${pc}%"></i></div></summary><div class="body">${g}</div></details>`});
+document.getElementById("ph").innerHTML=H;document.getElementById("up").textContent="Last updated "+T.updated;
+const pc=Math.round(dn/all*100);document.getElementById("tot").innerHTML=`<b>Overall: ${dn} of ${all} tasks done (${pc}%)</b><div class="bar" style="margin-top:6px"><i style="width:${pc}%"></i></div><div class="legend"><span style="color:var(--g)">✓ Done</span><span style="color:var(--w)">… In progress</span><span style="color:#6b7280">☐ To do</span></div>`;
+</script></body></html>
