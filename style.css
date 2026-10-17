@@ -1,0 +1,31 @@
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:#fff;color:#111}
+header,main,footer{max-width:980px;margin:0 auto;padding:0 16px}
+h1{font-size:1.35rem;margin:18px 0 10px}
+h2{font-size:1.05rem;margin:28px 0 10px}
+.banner{background:#fff7e6;border:1px solid #f0c36d;border-radius:8px;padding:10px 12px;font-size:.92rem;line-height:1.4}
+.badge{display:inline-block;background:#c0392b;color:#fff;font-size:.72rem;font-weight:700;padding:2px 6px;border-radius:4px;letter-spacing:.03em;vertical-align:middle}
+nav{display:flex;gap:6px;margin:14px 0 0;border-bottom:1px solid #ddd}
+.tab{border:0;background:none;padding:10px 14px;font-size:1rem;cursor:pointer;border-bottom:3px solid transparent;color:#555}
+.tab.active{color:#111;border-bottom-color:#2f6fb5;font-weight:600}
+.panel{display:none;padding-top:16px}.panel.active{display:block}
+form{display:flex;gap:8px}
+input{flex:1;font-size:1.1rem;padding:10px 12px;border:1px solid #bbb;border-radius:8px}
+form button{font-size:1rem;padding:10px 18px;border:0;border-radius:8px;background:#2f6fb5;color:#fff;cursor:pointer}
+#result{margin-top:16px}
+.card{border:1px solid #d0d4da;border-radius:10px;padding:10px;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.card.unsure{border-color:#d9822b}
+.card .svg{flex:0 0 260px;max-width:100%}
+.card .svg svg{width:100%;height:auto;display:block}
+.card .info{flex:1;min-width:200px}
+.card .info h3{margin:0 0 6px;font-size:1.5rem}
+.card .info p{margin:4px 0;color:#333}
+.msg{padding:12px;border-radius:8px;background:#f4f6f8;border:1px solid #dde2e7}
+#list{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid #c9d3de;background:#fff;border-radius:999px;padding:6px 12px;font-size:.95rem;cursor:pointer}
+.chip:hover,.chip.sel{background:#eaf2fb;border-color:#2f6fb5}
+.chip .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#d9822b;margin-left:6px;vertical-align:middle}
+#chartgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:6px}
+#chartgrid svg{width:100%;height:auto;display:block}
+.hint{color:#555;font-size:.92rem}
+footer{color:#888;font-size:.8rem;padding:30px 16px}

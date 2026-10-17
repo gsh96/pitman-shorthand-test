@@ -1,0 +1,37 @@
+// Sample outlines. `tokens` go through the rules-based composer; `sign`
+// entries are detached logograms. `unsure` = reason the shape/position is
+// not verified against a New Era textbook.
+export const SAMPLES = [
+  { word: 'pay', tokens: ['P', 'ay'] },
+  { word: 'bay', tokens: ['B', 'ay'] },
+  { word: 'tea', tokens: ['T', 'ee'] },
+  { word: 'day', tokens: ['D', 'ay'] },
+  { word: 'came', tokens: ['K', 'ay', 'M'] },
+  { word: 'fee', tokens: ['F', 'ee'] },
+  { word: 'see', tokens: ['S', 'ee'] },
+  { word: 'so', tokens: ['S', 'oh'] },
+  { word: 'may', tokens: ['M', 'ay'] },
+  { word: 'no', tokens: ['N', 'oh'], extra: 'written out (not a grammalogue)' },
+  { word: 'ray', tokens: ['R', 'ay'] },
+  { word: 'air', tokens: ['ay', 'R'] },
+  { word: 'tape', tokens: ['T', 'ay', 'P'] },
+  { word: 'fade', tokens: ['F', 'ay', 'D'] },
+  { word: 'pays', tokens: ['P', 'ay', 's'] },
+  { word: 'pay the', tokens: ['P', 'ay', 'THE'], extra: 'tick-the phrase' },
+  { word: 'he', tokens: ['H', 'ee'], unsure: 'grammalogue form unverified; drawn as vocalised downward H' },
+  // grammalogues (logograms)
+  { word: 'a / an', sign: ['dot', { heavy: false, pos: 1 }], note: 'light dot, 1st pos.' },
+  { word: 'the', sign: ['dot', { heavy: false, pos: 2 }], note: 'light dot, on line', unsure: 'position (on line) from secondary source' },
+  { word: 'and', sign: ['tick', { heavy: false, pos: 2, angle: 30 }], note: 'light tick, upward', unsure: 'height relative to line' },
+  { word: 'of', sign: ['dash', { heavy: false, pos: 1 }], note: 'light dash, 1st pos.', unsure: 'slant of dash' },
+  { word: 'to', sign: ['dash', { heavy: false, pos: 2 }], note: 'light dash, on line', unsure: 'slant and position' },
+  { word: 'all', sign: ['dash', { heavy: true, pos: 1 }], note: 'heavy dash, 1st pos.', unsure: 'slant of dash' },
+  { word: 'two / too', sign: ['dash', { heavy: true, pos: 2 }], note: 'heavy dash, on line', unsure: 'slant and position' },
+  { word: 'it', tokens: ['T'], position: 3, gram: true, unsure: 'position (3rd) not verified' },
+  { word: 'be', tokens: ['B'], position: 2, gram: true, unsure: 'position not verified' },
+  { word: 'do', tokens: ['D'], position: 2, gram: true },
+  { word: 'which', tokens: ['CH'], position: 2, gram: true, unsure: 'position not verified' },
+  { word: 'have', tokens: ['V'], position: 1, gram: true, unsure: 'V logogram & position not verified' },
+  { word: 'will', tokens: ['L'], position: 2, gram: true, unsure: 'L logogram & position not verified' },
+  { word: 'is / his', sign: ['circle', { pos: 2 }], note: 'small circle s, on line' },
+];
