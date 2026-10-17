@@ -4,9 +4,10 @@ import { STROKES } from './strokes.js';
 import { composeOutline, composeSign, vowelMark } from './composer.js';
 import { VOWELS } from './vowels.js';
 import { SAMPLES } from './words.js';
+import { grammalogueEntries } from './grammalogues.js';
 
 export const posName = { 1: 'above line', 2: 'on line', 3: 'through line' };
-const strokeLabel = { RAY: 'Ray', AR: 'Ar', H_UP: 'H up', H_DOWN: 'H down', SH_UP: 'SH up', WL: 'Wel' };
+const strokeLabel = { RAY: 'Ray', AR: 'Ar', H_UP: 'H up', H_DOWN: 'H down', SH_UP: 'SH up', WL: 'Wel', MP: 'MP' };
 const sl = (n) => { const [b, l] = n.split(':'); return (strokeLabel[b] || b) + (l ? ` (${l})` : ''); };
 
 export function buildSample(s) {
@@ -25,12 +26,33 @@ export function buildSample(s) {
 }
 export const allSamples = () => SAMPLES.map(buildSample);
 
-/** lookup keys: "a / an" -> ["a","an","a / an"] */
+export const statusLabel = { ok: '', unsure: 'UNSURE', nys: 'NOT YET SUPPORTED' };
+const EMPTY = { elements: [], strokes: [], rules: [], position: null };
+
+/** Grammalogue / contraction entry -> drawable item (NYS entries get no outline). */
+export function buildGram(g) {
+  let outline = EMPTY;
+  if (g.status !== 'nys') {
+    outline = g.sign ? composeSign(g.sign.kind, { heavy: g.sign.heavy, pos: g.pos, angle: g.sign.angle })
+      : composeOutline(g.tokens, { position: g.pos, vowels: false, below3: true });
+  }
+  const where = g.pos ? `${['', '1st', '2nd', '3rd'][g.pos]} pos, ${g.pos === 3 && g.tokens && outline.strokes.length && outline.strokes.every((n) => ['K', 'G', 'M', 'N', 'NG', 'MP'].includes(n.split(':')[0])) ? 'below line' : posName[g.pos]}` : g.kind;
+  return { ...g, word: g.words.join(', '), outline, note: [g.desc, where], unsure: g.status !== 'ok', flag: statusLabel[g.status], file: g.id };
+}
+let _grams;
+export const allGrammalogues = () => (_grams ??= grammalogueEntries().map(buildGram));
+
+/** lookup keys: "a / an" -> ["a","an","a / an"]; grammalogue words included
+ *  (base word of "remember-ed" etc. too). Values: arrays of hits. */
 export function sampleIndex() {
   const idx = new Map();
+  const put = (k, item) => { k = k.trim().toLowerCase(); if (!k) return; const a = idx.get(k) ?? []; if (!a.includes(item)) a.push(item); idx.set(k, a); };
   for (const s of SAMPLES) {
-    idx.set(s.word.toLowerCase(), s);
-    for (const part of s.word.split('/')) idx.set(part.trim().toLowerCase(), s);
+    put(s.word, s);
+    for (const part of s.word.split('/')) put(part, s);
+  }
+  for (const g of allGrammalogues()) {
+    for (const w of g.words) { put(w, g); put(w.replace(/[!?.]/g, ''), g); put(w.split('-')[0], g); }
   }
   return idx;
 }

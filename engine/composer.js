@@ -23,7 +23,7 @@ import { VOWELS, isVowel } from './vowels.js';
 
 export const DIM = {
   dotLight: 0.05, dotHeavy: 0.072, dotOffset: 0.17,
-  dashIn: 0.1, dashOut: 0.3, circleS: 0.075, tick: 0.3,
+  dashIn: 0.1, dashOut: 0.3, circleS: 0.075, circleSes: 0.15, tick: 0.3,
   placeT: { 1: 0.1, 2: 0.5, 3: 0.9 },
   // detached logograms (dots, dashes, ticks, circle). Measured against the
   // printed grammalogue lists of the New Era Instructor (1920 / 1955) and the
@@ -39,9 +39,17 @@ export const DIM = {
 function parse(tok) {
   if (isVowel(tok)) return { t: 'V', key: tok };
   if (tok === 's') return { t: 'CIRCLE' };
+  if (tok === 'ss') return { t: 'CIRCLE', big: true };
   if (tok === 'THE') return { t: 'THE' };
-  const [name, length = 'normal'] = tok.split(':');
-  return { t: 'C', name, length };
+  // stroke token grammar: NAME[:half|:double][*][!][+r|+l][+n|+f|+shun]
+  //   * = thickened (halving + thickening adds d to M N L R), ! = reversed
+  //   curve (hooked alternative forms FR VR THR), +r/+l initial hook,
+  //   +n/+f/+shun final hook
+  const m = /^([A-Z_]+)(?::(half|normal|double))?(\*)?(!)?((?:\+(?:r|l|n|f|shun))*)$/.exec(tok);
+  if (!m) throw new Error(`bad token ${tok}`);
+  const hooks = m[5].split('+').filter(Boolean);
+  return { t: 'C', name: m[1], length: m[2] || 'normal', heavy: m[3] ? true : undefined, reverse: !!m[4],
+    hookStart: hooks.find((h) => h === 'r' || h === 'l'), hookEnd: hooks.find((h) => h === 'n' || h === 'f' || h === 'shun') };
 }
 
 function resolveVariants(items) {
@@ -89,7 +97,8 @@ export function vowelMark(stroke, key, side) {
   return { type: 'line', a: add(p, mul(n, DIM.dashIn)), b: add(p, mul(n, DIM.dashOut)), heavy: V.heavy, cap: 'round' };
 }
 
-function circleS(stroke, atEnd) {
+function circleS(stroke, atEnd, big = false) {
+  const R = big ? DIM.circleSes : DIM.circleS;
   const { p, tan } = pointAt(stroke, atEnd ? 1 : 0);
   let n;
   if (stroke.kind === 'arc') {
@@ -99,7 +108,7 @@ function circleS(stroke, atEnd) {
     const bulge = norm(sub(mid, chordMid));
     n = perpL(tan); if (dot(n, bulge) > 0) n = mul(n, -1);
   } else n = perpL(tan);
-  return { type: 'circle', c: add(p, mul(n, DIM.circleS)), r: DIM.circleS, heavy: false };
+  return { type: 'circle', c: add(p, mul(n, R)), r: R, heavy: false };
 }
 
 export function composeOutline(tokens, opts = {}) {
@@ -110,7 +119,7 @@ export function composeOutline(tokens, opts = {}) {
   const elements = [];
   items.forEach((it) => {
     if (it.t !== 'C') return;
-    const s = translateStroke(buildStroke(it.name, { length: it.length }), pen);
+    const s = translateStroke(buildStroke(it.name, { length: it.length, heavy: it.heavy, reverse: it.reverse, hookStart: it.hookStart, hookEnd: it.hookEnd }), pen);
     pen = endOf(s);
     it.si = strokes.length;
     strokes.push(s);
@@ -122,8 +131,8 @@ export function composeOutline(tokens, opts = {}) {
     const prevC = [...items.slice(0, i)].reverse().find((x) => x.t === 'C');
     const nextC = items.slice(i + 1).find((x) => x.t === 'C');
     if (it.t === 'CIRCLE') {
-      if (prevC) elements.push(circleS(strokes[prevC.si], true));
-      else if (nextC) elements.push(circleS(strokes[nextC.si], false));
+      if (prevC) elements.push(circleS(strokes[prevC.si], true, it.big));
+      else if (nextC) elements.push(circleS(strokes[nextC.si], false, it.big));
       else elements.push({ type: 'circle', c: v(0, 0), r: DIM.circleS, heavy: false });
     } else if (it.t === 'THE') {
       const a = endOf(strokes[prevC.si]);
@@ -150,7 +159,11 @@ export function composeOutline(tokens, opts = {}) {
   } else {
     const ys = strokes.flatMap((s) => s.pts.map((p) => p.y));
     const lo = Math.min(...ys);
-    dy = (position === 1 ? 0.5 : 0.07) - lo;
+    const hi = Math.max(...ys);
+    // horizontal grammalogues in 3rd position (own, young) are written just
+    // BELOW the line (1924 course Lesson III; 1920 list); other horizontal
+    // outlines use the line for both 2nd and 3rd position
+    dy = position === 3 && opts.below3 ? -0.07 - hi : (position === 1 ? 0.5 : 0.07) - lo;
   }
   return { elements: shift(elements, v(0, dy)), strokes: strokes.map((s) => s.name), rules, position };
 }
@@ -166,8 +179,14 @@ export function composeSign(kind, { heavy = false, pos = 2, angle } = {}) {
   if (kind === 'dot') {
     const r = heavy ? DIM.dotHeavy : DIM.dotLight;
     el = { type: 'dot', c: v(0, base + r), r };
-  } else if (kind === 'circle') {
-    el = { type: 'circle', c: v(0, base + DIM.circleS), r: DIM.circleS, heavy: false };
+  } else if (kind === 'circle' || kind === 'bigcircle') {
+    const R = kind === 'circle' ? DIM.circleS : DIM.circleSes;
+    el = { type: 'circle', c: v(0, base + R), r: R, heavy: false };
+  } else if (kind in SEMI) {
+    // small diphthong-shaped signs: semicircles, caret, angle
+    const R = 0.11, pts = SEMI[kind](R);
+    const lo = Math.min(...pts.map((p) => p.y));
+    el = { type: 'polyline', pts: pts.map((p) => v(p.x, p.y - lo + base + 0.012)), heavy: false };
   } else {
     const ang = angle ?? (kind === 'vdash' ? 90 : kind === 'dash' ? -45 : 45);
     const d = mul(fromAngle(ang), L);
@@ -179,6 +198,17 @@ export function composeSign(kind, { heavy = false, pos = 2, angle } = {}) {
   return { elements: [el], strokes: [], rules: [], position: pos };
 }
 
+// semicircle "c" (opens right: with/when), "ɔ" (opens left: what/would),
+// "∩" (beyond/you), caret "^" (how) and the angle sign of why
+const arc = (R, a0, a1) => Array.from({ length: 17 }, (_, i) => { const a = (a0 + (a1 - a0) * i / 16) * Math.PI / 180; return v(R * Math.cos(a), R * Math.sin(a)); });
+const SEMI = {
+  semiL: (R) => arc(R, 90, 270),
+  semiR: (R) => arc(R, 90, -90),
+  cap: (R) => arc(R, 180, 0),
+  caret: (R) => [v(-R, 0), v(0, R * 1.5), v(R, 0)],
+  angle: (R) => [v(0, R * 2), v(0, 0), v(R * 1.4, 0)],
+};
+
 export function shift(elements, off) {
   const t = (p) => add(p, off);
   return elements.map((e) => {
@@ -186,6 +216,7 @@ export function shift(elements, off) {
       case 'stroke': return { ...e, stroke: translateStroke(e.stroke, off) };
       case 'dot': case 'circle': return { ...e, c: t(e.c) };
       case 'line': return { ...e, a: t(e.a), b: t(e.b) };
+      case 'polyline': return { ...e, pts: e.pts.map(t) };
       default: return e;
     }
   });

@@ -29,3 +29,20 @@ form button{font-size:1rem;padding:10px 18px;border:0;border-radius:8px;backgrou
 #chartgrid svg{width:100%;height:auto;display:block}
 .hint{color:#555;font-size:.92rem}
 footer{color:#888;font-size:.8rem;padding:30px 16px}
+.badge.nys{background:#d9822b}
+.card+.card{margin-top:12px}
+.src{color:#777;font-size:.82rem}
+#gfilters{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+#gfilters button{border:1px solid #c9d3de;background:#fff;border-radius:999px;padding:6px 12px;font-size:.92rem;cursor:pointer}
+#gfilters button.on{background:#2f6fb5;border-color:#2f6fb5;color:#fff}
+#gq{width:100%;font-size:1rem;padding:9px 12px;border:1px solid #bbb;border-radius:8px}
+#gcount{margin:8px 0}
+#ggrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
+.gcard{display:flex;flex-direction:column;align-items:center;text-align:center;border:1px solid #d0d4da;border-radius:10px;background:#fff;padding:6px 6px 8px;cursor:pointer;font:inherit;color:inherit}
+.gcard:hover{border-color:#2f6fb5}
+.gcard.unsure,.gcard.nys{border-color:#d9822b}
+.gsvg{width:100%}.gsvg svg{width:100%;height:auto;display:block}
+.nodraw{width:100%;aspect-ratio:180/190;display:flex;align-items:center;justify-content:center;color:#aaa;font-style:italic;font-size:.85rem;background:#fafafa;border-radius:8px}
+.gw{font-weight:600;font-size:.98rem;margin-top:2px}
+.gm{color:#666;font-size:.78rem;margin:2px 0 4px;line-height:1.25}
+@media (max-width:520px){#ggrid{grid-template-columns:repeat(2,1fr)}.card .svg{flex-basis:100%}h1{font-size:1.15rem}.tab{padding:9px 10px;font-size:.95rem}}

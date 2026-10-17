@@ -9,21 +9,31 @@
 <body>
 <header>
   <h1>Pitman New Era shorthand – outline test</h1>
-  <div class="banner">Early test version. Outlines are drawn by a rules-based engine and only the words listed below are supported. Items marked <span class="badge">UNSURE</span> are not yet verified against a New Era textbook.</div>
+  <div class="banner">Early test version. Outlines are drawn by a rules-based engine and only the words listed below and the grammalogues are supported. Items marked <span class="badge">UNSURE</span> are not yet verified against a New Era textbook.</div>
   <nav>
     <button class="tab active" data-tab="words">Words</button>
+    <button class="tab" data-tab="grams">Grammalogues</button>
     <button class="tab" data-tab="chart">Stroke chart</button>
   </nav>
 </header>
 <main>
   <section id="words" class="panel active">
     <form id="search" autocomplete="off">
-      <input id="q" type="search" placeholder="Type a word, e.g. pay, came, the" aria-label="Word">
+      <input id="q" type="search" placeholder="Type a word, e.g. pay, the, would" aria-label="Word">
       <button type="submit">Show</button>
     </form>
     <div id="result" aria-live="polite"></div>
     <h2>Supported words</h2>
     <div id="list"></div>
+  </section>
+  <section id="grams" class="panel">
+    <p class="hint">Pitman New Era grammalogues (short forms for common words) with the position they are written in. <span class="badge">UNSURE</span> = drawn from the rules but not fully verified; <span class="badge nys">NOT YET SUPPORTED</span> = the engine cannot draw it yet. Tap a card for details.</p>
+    <div id="gfilters" role="group" aria-label="Filter">
+      <button data-pos="all" class="on">All</button><button data-pos="1">1st · above</button><button data-pos="2">2nd · on</button><button data-pos="3">3rd · through</button><button data-kind="contraction">Contractions</button>
+    </div>
+    <input id="gq" type="search" placeholder="Filter grammalogues, e.g. ther" aria-label="Filter grammalogues">
+    <div id="gcount" class="hint"></div>
+    <div id="ggrid"></div>
   </section>
   <section id="chart" class="panel">
     <p class="hint">All consonant strokes in second position (resting on the line), plus length variants and vowel places. Blue line = writing line.</p>

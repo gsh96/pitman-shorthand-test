@@ -33,6 +33,7 @@ export const STROKES = {
   SH_UP: S({ kind: 'arc', angle: 60, bulge: 'R', heavy: false, up: true, sound: 'sh (upward)' }),
   // horizontal curves
   M: S({ kind: 'arc', angle: 0, bulge: 'L', heavy: false, sound: 'm' }),
+  MP: S({ kind: 'arc', angle: 0, bulge: 'L', heavy: true, sound: 'mp / mb (thickened M)' }),
   N: S({ kind: 'arc', angle: 0, bulge: 'R', heavy: false, sound: 'n' }),
   NG: S({ kind: 'arc', angle: 0, bulge: 'R', heavy: true, sound: 'ng' }),
   // upstrokes and the two R / two H forms
@@ -50,8 +51,36 @@ export const STROKES = {
 export const LENGTHS = { half: 0.5, normal: 1, double: 2 };
 const N_SAMPLES = 32;
 
-/** Build a stroke instance starting at the origin. */
-export function buildStroke(name, { length = 'normal' } = {}) {
+export const HOOK = { small: 0.085, large: 0.14, shun: 0.15 };
+
+/** inside-of-curve normal at a point with tangent `tan` */
+function insideN(tan, bulgeN) { let n = perpL(tan); if (n.x * bulgeN.x + n.y * bulgeN.y > 0) n = mul(n, -1); return n; }
+
+/** semicircular hook at point p (tangent tan, written direction) on side n.
+ *  initial hooks sit behind the start, final hooks run on past the end. */
+function hookPts(p, tan, n, r, atEnd) {
+  const c = add(p, mul(n, r));
+  const out = [];
+  for (let i = 0; i <= 16; i++) {
+    const th = (Math.PI * i) / 16;
+    out.push(atEnd ? add(c, add(mul(n, -r * Math.cos(th)), mul(tan, r * Math.sin(th))))
+      : add(c, add(mul(n, r * Math.cos(th)), mul(tan, -r * Math.sin(th)))));
+  }
+  return out;
+}
+
+/** Build a stroke instance starting at the origin.
+ *  opts: length ('half' | 'normal' | 'double'), heavy (thickening override),
+ *  reverse (curve bulges the other way: the hooked alternative FR/VR/THR forms),
+ *  hookStart ('r' | 'l'), hookEnd ('n' | 'f' | 'shun').
+ *  Hook rules (New Era Instructor 1920, ch. XI and XIV):
+ *   - straight strokes: initial r hook and final n hook = Right motion
+ *     (clockwise), initial l hook and final f/v hook = Left motion
+ *   - curves: small initial hook inside = r, large initial hook inside = l,
+ *     small final hook inside = n; there is no f/v hook on curves
+ *   - shun: large final hook, inside curves (straight-stroke side rules are
+ *     not implemented) */
+export function buildStroke(name, { length = 'normal', heavy, reverse = false, hookStart, hookEnd } = {}) {
   const def = STROKES[name];
   if (!def) throw new Error(`unknown stroke ${name}`);
   const L = LENGTHS[length] ?? length;
@@ -59,11 +88,12 @@ export function buildStroke(name, { length = 'normal' } = {}) {
   const start = v(0, 0);
   const end = mul(dir, L);
   const pts = [];
+  const bulgeSide = def.kind === 'arc' ? (reverse ? (def.bulge === 'L' ? 'R' : 'L') : def.bulge) : null;
+  const bulgeN = bulgeSide === 'L' ? perpL(dir) : perpR(dir);
   if (def.kind === 'line') {
     for (let i = 0; i <= N_SAMPLES; i++) pts.push(lerp(start, end, i / N_SAMPLES));
   } else {
     // quarter circle on the chord: radius = L/sqrt2, centre L/2 from chord midpoint
-    const bulgeN = def.bulge === 'L' ? perpL(dir) : perpR(dir);
     const c = sub(mul(add(start, end), 0.5), mul(bulgeN, L / 2));
     const r0 = sub(start, c);
     // pick rotation sense that reaches `end` through the bulge side
@@ -79,16 +109,28 @@ export function buildStroke(name, { length = 'normal' } = {}) {
   if (def.hook) {
     // W/Y: small initial hook; W on the left of the stroke, Y on the right
     const n = def.hook === 'L' ? perpL(dir) : perpR(dir);
-    const hr = def.hookR ?? r;
-    const c = add(start, mul(n, hr));
-    const hook = [];
-    for (let i = 0; i <= 16; i++) {
-      const th = (Math.PI * i) / 16;
-      hook.push(add(c, add(mul(n, hr * Math.cos(th)), mul(dir, -hr * Math.sin(th)))));
-    }
-    extras.push({ type: 'polyline', pts: hook, heavy: false });
+    extras.push({ type: 'polyline', pts: hookPts(start, dir, n, def.hookR ?? r, false), heavy: false });
   }
-  return { name, def, length: L, dir, pts, extras, heavy: def.heavy, up: !!def.up, kind: def.kind };
+  const t0 = norm(sub(pts[1], pts[0])), t1 = norm(sub(pts[N_SAMPLES], pts[N_SAMPLES - 1]));
+  if (hookStart) {
+    if (def.hook || def.circle) throw new Error(`${name} already has an initial hook/circle`);
+    let n, hr;
+    if (def.kind === 'line') { n = hookStart === 'r' ? perpR(t0) : perpL(t0); hr = HOOK.small; }
+    else { n = insideN(t0, bulgeN); hr = hookStart === 'r' ? HOOK.small : HOOK.large; }
+    extras.push({ type: 'polyline', pts: hookPts(start, t0, n, hr, false), heavy: false });
+  }
+  if (hookEnd) {
+    let n, hr = HOOK.small;
+    if (def.kind === 'line') {
+      if (hookEnd === 'shun') throw new Error('shun hook on straight strokes not implemented');
+      n = hookEnd === 'n' ? perpR(t1) : perpL(t1);
+    } else {
+      if (hookEnd === 'f') throw new Error('no f/v hook on curves');
+      n = insideN(t1, bulgeN); if (hookEnd === 'shun') hr = HOOK.shun;
+    }
+    extras.push({ type: 'polyline', pts: hookPts(pts[N_SAMPLES], t1, n, hr, true), heavy: false });
+  }
+  return { name, def, length: L, dir, pts, extras, heavy: heavy ?? def.heavy, up: !!def.up, kind: def.kind, bulgeN, hookStart, hookEnd, reverse };
 }
 
 export function translateStroke(s, off) {
