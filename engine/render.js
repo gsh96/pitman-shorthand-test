@@ -14,14 +14,15 @@ function polyline(pts, o, w) {
   return `<polyline points="${pts.map((p) => P(p, o)).join(' ')}" fill="none" stroke="${STYLE.ink}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"/>`;
 }
 
-function taperedArc(pts, o) {
+function taperedArc(pts, o, s = {}) {
   const n = pts.length - 1;
   const left = [], right = [];
   pts.forEach((p, i) => {
     const a = pts[Math.max(0, i - 1)], b = pts[Math.min(n, i + 1)];
     const nn = perpL(norm(sub(b, a)));
     const t = i / n;
-    const w = (STYLE.light + (STYLE.heavy - STYLE.light) * Math.pow(Math.sin(Math.PI * t), 0.7)) / STYLE.k / 2;
+    const full = (s.thickStart && t < 0.5) || (s.thickEnd && t > 0.5); // thick-to-thick joint: no taper
+    const w = (STYLE.light + (STYLE.heavy - STYLE.light) * (full ? 1 : Math.pow(Math.sin(Math.PI * t), 0.7))) / STYLE.k / 2;
     left.push({ x: p.x + nn.x * w, y: p.y + nn.y * w });
     right.push({ x: p.x - nn.x * w, y: p.y - nn.y * w });
   });
@@ -29,15 +30,36 @@ function taperedArc(pts, o) {
   return `<polygon points="${poly.map((p) => P(p, o)).join(' ')}" fill="${STYLE.ink}"/>` + polyline(pts, o, STYLE.light);
 }
 
+/** hook on a heavy straight stroke: printed hooks are part of the stroke, so
+ *  the heavy width carries on into the hook and tapers to light at its tip
+ *  (2024 + 1920 lists: believe, been, behalf, deliver, advantage, general). */
+function taperedHook(pts, o, joint) {
+  const P = joint === 'end' ? [...pts].reverse() : pts; // P[0] = at the stroke
+  const n = P.length - 1, left = [], right = [];
+  let tot = 0; const acc = [0];
+  for (let i = 1; i <= n; i++) { tot += Math.hypot(P[i].x - P[i - 1].x, P[i].y - P[i - 1].y); acc.push(tot); }
+  P.forEach((p, i) => {
+    const a = P[Math.max(0, i - 1)], b = P[Math.min(n, i + 1)];
+    const nn = perpL(norm(sub(b, a)));
+    const t = tot ? acc[i] / tot : 1;
+    const w = (STYLE.light + (STYLE.heavy - STYLE.light) * Math.pow(1 - t, CAL.hookTaper)) / STYLE.k / 2;
+    left.push({ x: p.x + nn.x * w, y: p.y + nn.y * w });
+    right.push({ x: p.x - nn.x * w, y: p.y - nn.y * w });
+  });
+  return `<polygon points="${[...left, ...right.reverse()].map((p) => P_(p, o)).join(' ')}" fill="${STYLE.ink}"/>` + polyline(pts, o, STYLE.light);
+}
+const P_ = (p, o) => P(p, o);
+
 export function elementsToSvg(elements, o) {
   return elements.map((e) => {
     if (e.type === 'stroke') {
       const s = e.stroke;
       let out = '';
-      if (s.kind === 'arc' && s.heavy) out += taperedArc(s.pts, o);
+      if (s.kind === 'arc' && s.heavy) out += taperedArc(s.pts, o, s);
       else out += polyline(s.kind === 'line' ? [s.pts[0], s.pts[s.pts.length - 1]] : s.pts, o, s.heavy ? STYLE.heavy : STYLE.light);
       for (const x of s.extras) {
         if (x.type === 'circle') out += `<circle cx="${f(o.x + x.c.x * STYLE.k)}" cy="${f(o.y - x.c.y * STYLE.k)}" r="${f(x.r * STYLE.k)}" fill="none" stroke="${STYLE.ink}" stroke-width="${STYLE.light}"/>`;
+        else if (x.joint && s.heavy && s.kind === 'line') out += taperedHook(x.pts, o, x.joint);
         else out += polyline(x.pts, o, STYLE.light);
       }
       return out;

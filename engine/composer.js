@@ -8,7 +8,7 @@
 //            +shunL force Right / Left motion on straight strokes)
 //   attachments written next to the stroke they belong to:
 //            's' small circle, 'ss' large circle, 'st' / 'str' loops,
-//            'IN' large "in" hook before a circle-in-hook, 'shun' (after a
+//            'IN' small "in" hook before a circle-in-hook (str, skr, spr), 'shun' (after a
 //            circle: small shun hook on the other side)
 //   vowels   'ay', 'ee', ... ;  'THE' tick-the (phrase-final)
 //
@@ -35,7 +35,7 @@
 //   * outline position from first vowel (1 above, 2 on, 3 through), on the
 //     first up/down stroke; all-horizontal outlines above / on the line,
 //     horizontal grammalogues in 3rd position below the line
-import { v, add, sub, mul, dot, perpL, perpR, fromAngle, norm, len } from './geometry.js';
+import { v, add, sub, mul, dot, perpL, perpR, fromAngle, norm, len, rot, deg } from './geometry.js';
 import { buildStroke, translateStroke, endOf, startOf, pointAt, isHorizontal, hookPts, insideN } from './strokes.js';
 import { CAL } from './calibration.js';
 import { VOWELS, isVowel } from './vowels.js';
@@ -116,15 +116,12 @@ const circleAt = (p, n, R, out) => {
   if (out) { const a = (CAL.circleRadial * Math.PI) / 180; d = norm(add(mul(n, Math.cos(a)), mul(out, Math.sin(a)))); }
   return { type: 'circle', c: add(p, mul(d, R)), r: R, heavy: false };
 };
-/** large "in" hook wrapped round an initial circle (centre c, radius R) */
-function inHookPts(start, c, n, tan) {
-  const Rh = CAL.inHook, u = mul(tan, -1), w = mul(n, -1), out = [];
-  for (let i = 0; i <= 24; i++) {
-    const th = ((-110 + (200 * i) / 24) * Math.PI) / 180;
-    out.push(add(c, add(mul(u, Rh * Math.cos(th)), mul(w, Rh * Math.sin(th)))));
-  }
-  out.push(start);
-  return out;
+/** in- before skr / str / spr (Instructor ch. on prefixes: "a small hook
+ *  written in the same direction as the circle"): a small hook on the side
+ *  opposite the circle, lying behind the stroke start, its tip curling back
+ *  towards the stroke so hook + circle read as one compact closed blob. */
+function inHookPts(start, n, tan) {
+  return hookPts(start, tan, mul(n, -1), CAL.inHook, false, CAL.inHookSweep);
 }
 function ellipseHalf(p, tan, n, Ll, w, forward) {
   const out = [];
@@ -159,11 +156,12 @@ function loopAlong(s, atEnd, n0, [Ll, w]) {
 
 /** Decorate one stroke with its initial / final attachments. Returns the
  *  stroke with extras, entry/exit points and labels for the notes. */
-function decorate(s, it, pre, post, rules) {
+function decorate(s, it, pre, post, rules, ctx = {}) {
   const ex = s.extras, straight = s.kind === 'line';
   const start = startOf(s), end = endOf(s);
   let entry = s.entry, exit = end;
   let initialSide = null; // normal of the initial attachment (for shun)
+  if (s.def.hook) initialSide = s.def.hook === 'L' ? perpL(s.dir) : perpR(s.dir); // built-in W / Y hook
   // ---- initial
   const circ = pre.find((a) => a === 's' || a === 'ss');
   const loop = pre.find((a) => a === 'st' || a === 'str');
@@ -176,19 +174,24 @@ function decorate(s, it, pre, post, rules) {
     if ((circ || loop) && straight && it.hookStart === 'r') {
       // spr / str / skr: circle or loop on the hook side, hook not shown
       let cc = null;
-      if (circ) { const c = circleAt(start, n, circ === 'ss' ? CAL.bigCircle : CAL.circle, hasIN ? null : mul(s.t0, -1)); ex.push(c); cc = c.c; }
+      if (circ) {
+        const R = circ === 'ss' ? CAL.bigCircle : CAL.circle;
+        // with in-: circle pushed back behind the start, level with the hook
+        const c = hasIN ? { type: 'circle', c: add(start, add(mul(n, R * Math.cos((CAL.inCircleBack * Math.PI) / 180)), mul(s.t0, -R * Math.sin((CAL.inCircleBack * Math.PI) / 180)))), r: R, heavy: false } : circleAt(start, n, R, mul(s.t0, -1));
+        ex.push(c); cc = c.c;
+      }
       else ex.push({ type: 'polyline', pts: loopAlong(s, false, n, loop === 'st' ? CAL.loopST : CAL.loopSTR), heavy: false });
       rules.push(`${circ || loop} + r hook on a straight stroke -> written on the hook side (Right motion)`);
       if (hasIN) {
-        const hp = inHookPts(start, cc || add(start, mul(n, CAL.circle)), n, s.t0);
-        ex.push({ type: 'polyline', pts: hp, heavy: false }); entry = hp[0];
-        rules.push('in- : large hook written round the circle');
+        const hp = inHookPts(start, n, s.t0);
+        ex.push({ type: 'polyline', pts: hp, heavy: false, joint: 'end' }); entry = hp[0];
+        rules.push('in- : small hook on the other side, same direction as the circle');
       }
     } else {
       const R = circ ? (circ === 'ss' ? CAL.bigCircle : CAL.circle) : 0;
       const hrr = circ ? Math.max(hr, R + 0.035) : hr;
       const hp = hookPts(start, s.t0, n, hrr, false);
-      ex.push({ type: 'polyline', pts: hp, heavy: false }); entry = hp[0];
+      ex.push({ type: 'polyline', pts: hp, heavy: false, joint: 'end' }); entry = hp[0];
       if (circ) { ex.push({ type: 'circle', c: add(start, mul(n, hrr)), r: R, heavy: false }); rules.push('circle written inside the initial hook'); }
       if (loop) throw new Error('loop inside an initial hook not supported');
     }
@@ -218,7 +221,7 @@ function decorate(s, it, pre, post, rules) {
       const R = fc ? (fc === 'ss' ? CAL.bigCircle : CAL.circle) : 0;
       const hrr = fc ? Math.max(hr, R + 0.035) : hr;
       const hp = hookPts(end, s.t1, n, hrr, true, 180, fc ? 0 : CAL.hookTail * hrr);
-      ex.push({ type: 'polyline', pts: hp, heavy: false }); exit = hp[hp.length - 1];
+      ex.push({ type: 'polyline', pts: hp, heavy: false, joint: 'start' }); exit = hp[hp.length - 1];
       if (fc) { ex.push({ type: 'circle', c: add(end, mul(n, hrr)), r: R, heavy: false }); circleN = n; circleC = add(end, mul(n, hrr)); circleR = R; rules.push('circle written inside the final hook'); }
     }
   } else if (he && he.startsWith('shun')) {
@@ -226,10 +229,22 @@ function decorate(s, it, pre, post, rules) {
     if (!straight) n = insideN(s, true);
     else if (he === 'shunR' || he === 'shunL') n = motionN(s.t1, he === 'shunR' ? 'R' : 'L');
     else if (initialSide) { n = dot(perpL(s.t1), initialSide) > 0 ? perpR(s.t1) : perpL(s.t1); rules.push('shun opposite the initial attachment'); }
-    else if (['T', 'D', 'J'].includes(s.name)) { n = rightHandN(s.t1); rules.push('shun on the right-hand side of T/D/J'); }
-    else n = motionN(s.t1, 'R');
+    else if (['K', 'G'].includes(s.name) && ctx.prev?.kind === 'arc') {
+      // K / G after a curve: Right or Left motion as needed to keep the K / G
+      // straight = the side away from the inside of the curve at the joint
+      const inC = insideN(ctx.prev, true);
+      n = dot(perpL(s.t1), inC) > 0 ? perpR(s.t1) : perpL(s.t1);
+      rules.push('shun on K/G after a curve -> side that keeps the K/G straight');
+    } else if (['T', 'D', 'J'].includes(s.name)) { n = rightHandN(s.t1); rules.push('shun on the right-hand side of T/D/J'); }
+    else if (ctx.vowelSide) {
+      // opposite the last vowel: vowel before the stroke -> after-side, vowel
+      // after the stroke (between it and -shun) -> before-side
+      const b = beforeNormal(s);
+      n = ctx.vowelSide === 'after' ? b : mul(b, -1);
+      rules.push('shun on the side opposite the last vowel');
+    } else n = motionN(s.t1, 'R');
     const hp = hookPts(end, s.t1, n, CAL.shun, true, 180, fc ? 0 : CAL.shunTail * CAL.shun);
-    ex.push({ type: 'polyline', pts: hp, heavy: false }); exit = hp[hp.length - 1];
+    ex.push({ type: 'polyline', pts: hp, heavy: false, joint: 'start' }); exit = hp[hp.length - 1];
     if (fc) { circleR = CAL.circle; const c = add(end, mul(n, CAL.shun)); ex.push({ type: 'circle', c, r: circleR * 0.85, heavy: false }); }
   } else if (fc || fl) {
     const n = straight ? motionN(s.t1, 'L') : insideN(s, true);
@@ -239,9 +254,13 @@ function decorate(s, it, pre, post, rules) {
   if (fshun) {
     if (!circleN) throw new Error('shun token must follow a circle');
     // small hook on the other side of the stroke, same motion as the circle
+    // the pen leaves the stroke end towards the other side (m) and curls in
+    // the circle's rotation, so the hook opens away from the stroke start
     const m = mul(circleN, -1);
-    const hp = hookPts(end, s.t1, m, CAL.shunSmall, true);
-    ex.push({ type: 'polyline', pts: hp, heavy: false }); exit = hp[hp.length - 1];
+    const sense = (s.t1.x * circleN.y - s.t1.y * circleN.x) > 0 ? 1 : -1; // +1: circle drawn anticlockwise
+    const r = CAL.shunSmall, c0 = add(end, mul(perpL(m), sense * r)), hp = [];
+    for (let i = 0; i <= 16; i++) hp.push(add(c0, rot(sub(end, c0), (sense * deg(CAL.shunSmallSweep) * i) / 16)));
+    ex.push({ type: 'polyline', pts: hp, heavy: false, joint: 'start' }); exit = hp[hp.length - 1];
     rules.push('shun after circle -> small hook on the other side');
   }
   return { ...s, entry, exit };
@@ -279,7 +298,13 @@ export function composeOutline(tokens, opts = {}) {
   cIdx.forEach((ci, k) => {
     const it = items[ci];
     let s = buildStroke(it.name, { length: it.length, heavy: it.heavy, reverse: it.reverse });
-    s = decorate(s, it, pres[k] || [], posts[k] || [], rules);
+    let vowelSide = null;
+    if (it.hookEnd && it.hookEnd.startsWith('shun')) {
+      const nextCi = cIdx[k + 1] ?? items.length, prevCi = k ? cIdx[k - 1] : -1;
+      if (items.slice(ci + 1, nextCi).some((x) => x.t === 'V')) vowelSide = 'after';
+      else if (items.slice(prevCi + 1, ci).some((x) => x.t === 'V')) vowelSide = 'before';
+    }
+    s = decorate(s, it, pres[k] || [], posts[k] || [], rules, { prev: strokes[k - 1], vowelSide });
     s = translateStroke(s, sub(pen, s.entry));
     // medial circle / loop at the joint with the previous stroke
     const mc = medialCircle[k - 1];
@@ -306,6 +331,13 @@ export function composeOutline(tokens, opts = {}) {
     strokes.push(s);
     elements.push({ type: 'stroke', stroke: s });
   });
+  // 2024 Ch. I para 10: thick curves taper at both ends "except when a joining
+  // such as v-g or b-ng is made": a thick stroke joined to a thick stroke stays
+  // thick through the joint
+  for (let k = 1; k < strokes.length; k++) {
+    const a = strokes[k - 1], b = strokes[k], ia = items[cIdx[k - 1]], ib = items[cIdx[k]];
+    if (a.heavy && b.heavy && !ia.hookEnd && !ib.hookStart && !(medialCircle[k - 1] || []).length) { a.thickEnd = true; b.thickStart = true; rules.push('thick-to-thick joining: no taper at the joint'); }
+  }
   // tick-the, vowels
   let firstPlace = null;
   items.forEach((it, i) => {
@@ -337,7 +369,10 @@ export function composeOutline(tokens, opts = {}) {
     const lo = Math.min(...ys), hi = Math.max(...ys);
     // horizontal grammalogues in 3rd position (own, young) are written just
     // BELOW the line (1924 course Lesson III; 1920 list)
-    dy = position === 3 && opts.below3 ? -0.07 - hi : (position === 1 ? 0.5 : 0.07) - lo;
+    // 2nd position: written ON the line (2024 Ch. I Ex 1 note: "m, n, ng, k, g
+    // are written on the line") = the ink rests on the line
+    const onLine = (strokes.some((s) => s.heavy) ? CAL.heavy : CAL.light) / 2;
+    dy = position === 3 && opts.below3 ? -0.07 - hi : (position === 1 ? 0.5 : onLine) - lo;
   }
   return { elements: shift(elements, v(0, dy)), strokes: strokes.map((s) => s.name), rules, position };
 }

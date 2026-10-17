@@ -1,6 +1,6 @@
 // Project checklist. status: done | wip | todo. Optional 3rd item field overrides the group's category.
 window.TRACKER = {
- "updated": "2026-10-17 23:30 IST",
+ "updated": "2026-10-18 00:18 IST",
  "phases": [
   {
    "id": "P0",
@@ -219,181 +219,236 @@ window.TRACKER = {
      "name": "Private review site",
      "items": [
       [
-       "todo",
-       "Create private repo (not public, no GitHub Pages)"
+       "done",
+       "Private review site: encrypted (password) build published to gsh96/pitman-review on GitHub Pages; no plaintext book content online"
       ],
       [
-       "todo",
-       "Decide how Srihari views it (private link / local file / password)"
+       "done",
+       "Srihari views it with a password link (staticrypt, remembered 30 days on his device)"
       ],
       [
-       "todo",
-       "Chapter list matching the 2024 book order"
+       "done",
+       "Real 2024 chapter list (44 chapters with page ranges) read from the book contents"
       ],
       [
-       "todo",
-       "Exercise view: engine-drawn outline next to the word"
+       "done",
+       "Exercise view: word + large engine outline on ruled lines showing position; tap to animate stroke by stroke"
       ],
       [
-       "todo",
-       "Mark each outline Correct / Wrong with a note",
+       "done",
+       "Mark each outline Correct / Wrong with a note (saved on his device)",
+       "Outlines & Accuracy"
+      ],
+      [
+       "done",
+       "Export Srihari's marks (copy + download JSON) so fixes can be tracked"
+      ],
+      [
+       "done",
+       "Per-chapter score: % outlines marked correct",
+       "Outlines & Accuracy"
+      ],
+      [
+       "done",
+       "Items the engine cannot draw shown honestly as \"not drawable yet: <rule needed>\"",
+       "Outlines & Accuracy"
+      ],
+      [
+       "wip",
+       "Regression check: every rule fix re-checks all earlier chapters (local overlay check vs. 2024 print in place for Ch. I and the grammalogue list)",
        "Outlines & Accuracy"
       ],
       [
        "todo",
-       "Export Srihari's marks so fixes can be tracked"
-      ],
-      [
-       "todo",
-       "Per-chapter score: % outlines approved",
+       "Import Srihari's exported marks and turn every \"Wrong\" into an engine fix",
        "Outlines & Accuracy"
       ],
       [
        "todo",
-       "Regression check: every rule fix re-checks all earlier chapters",
+       "Resolve 2024 text vs. drawing conflict: Ray angle (text 30°, printed ≈ 41°) — confirm with Srihari",
        "Outlines & Accuracy"
       ]
      ],
      "cat": "Technical"
     },
     {
-     "name": "Theory chapters (each: build rules → Srihari checks → fix → 100%)",
+     "name": "Theory chapters, 2024 edition (each: build rules → Srihari checks → fix → 100%)",
      "items": [
       [
-       "todo",
-       "Consonant strokes"
+       "wip",
+       "I. The Consonants (pp. 1–8) — all 218 items drawn, awaiting Srihari's review"
       ],
       [
        "todo",
-       "Long vowels"
+       "II. The Vowels (pp. 9–13)"
       ],
       [
        "todo",
-       "Short vowels"
+       "III. Intervening Vowels and Position (pp. 14–18)"
       ],
       [
        "todo",
-       "Intervening vowels and position writing"
+       "IV. Alternative Signs for R and H (pp. 19–21)"
       ],
       [
        "todo",
-       "Alternative forms (upward/downward R, L, H, Sh)"
+       "V. Diphthongs (pp. 22–25)"
       ],
       [
        "todo",
-       "Circle S and Z"
+       "VI. Phraseography (pp. 26–30)"
       ],
       [
        "todo",
-       "Stroke S and Z"
+       "VII. Circle S and Z — Left and Right Motion (pp. 31–34)"
       ],
       [
        "todo",
-       "Large circles SW, SS/SZ"
+       "VIII. Stroke S and Z (pp. 35–38)"
       ],
       [
        "todo",
-       "Loops ST and STR"
+       "IX. Large Circles SW and SS or SZ (pp. 39–42)"
       ],
       [
        "todo",
-       "Initial hooks R and L to straight strokes"
+       "X. Loops ST and STR (pp. 43–47)"
       ],
       [
        "todo",
-       "Initial hooks R and L to curves"
+       "XI. Initial Hooks to Straight Strokes and Curves (pp. 48–52)"
       ],
       [
        "todo",
-       "Alternative forms for FR, VR etc."
+       "XII. Alternative Forms for FR, VR, etc. (pp. 53–57)"
       ],
       [
        "todo",
-       "Circles and loops to initial hooks"
+       "XIII. Circle or Loop Preceding Initial Hook (pp. 58–61)"
       ],
       [
        "todo",
-       "N and F/V hooks"
+       "XIV. N and F Hooks (pp. 62–66)"
       ],
       [
        "todo",
-       "Circles and loops to final hooks"
+       "XV. Circles and Loops to Final Hooks (pp. 67–71)"
       ],
       [
        "todo",
-       "Shun hook"
+       "XVI. The Shun Hook (pp. 72–77)"
       ],
       [
        "todo",
-       "Aspirate (H)"
+       "XVII. The Aspirate (pp. 78–81)"
       ],
       [
        "todo",
-       "Upward and downward R"
+       "XVIII. Upward and Downward R (pp. 82–86)"
       ],
       [
        "todo",
-       "Upward and downward L"
+       "XIX. Upward and Downward L and SH (pp. 87–91)"
       ],
       [
        "todo",
-       "Compound consonants (KW, GW, WH, LR, RR, MP/MB)"
+       "XX. Compound Consonants (pp. 92–96)"
       ],
       [
        "todo",
-       "Vowel indication"
+       "XXI. Vowel Indication (pp. 97–101)"
       ],
       [
        "todo",
-       "Diphthongs and triphones"
+       "XXII. The Halving Principle (Section 1) (pp. 102–106)"
       ],
       [
        "todo",
-       "Halving principle"
+       "XXIII. The Halving Principle (Section 2) (pp. 107–111)"
       ],
       [
        "todo",
-       "Doubling principle"
+       "XXIV. The Doubling Principle (pp. 112–118)"
       ],
       [
        "todo",
-       "Diphones"
+       "XXV. Diphonic or Two-Vowel Signs (pp. 119–122)"
       ],
       [
        "todo",
-       "Medial semicircle"
+       "XXVI. Medial Semicircle (pp. 123–125)"
       ],
       [
        "todo",
-       "Prefixes"
+       "XXVII. Prefixes (pp. 126–131)"
       ],
       [
        "todo",
-       "Suffixes and terminations"
+       "XXVIII. Suffixes and Terminations (pp. 132–139)"
       ],
       [
        "todo",
-       "Grammalogues (all lists)"
+       "XXIX. Contractions (pp. 140–149)"
       ],
       [
        "todo",
-       "Contractions"
+       "XXX. Figures, etc. (pp. 150–152)"
       ],
       [
        "todo",
-       "Phraseography"
+       "XXXI. Note-taking, Transcription, etc. (pp. 153–161)"
       ],
       [
        "todo",
-       "Intersections"
+       "XXXII. Essential Vowels (pp. 162–167)"
       ],
       [
        "todo",
-       "Omission of consonants and syllables"
+       "XXXIII. Special Contractions (pp. 168–188)"
       ],
       [
        "todo",
-       "Figures, abbreviations and special outlines"
+       "XXXIV. Advanced Phraseography (pp. 189–224)"
+      ],
+      [
+       "todo",
+       "XXXV. Intersections (pp. 225–233)"
+      ],
+      [
+       "todo",
+       "XXXVI. Business Phrases (pp. 234–237)"
+      ],
+      [
+       "todo",
+       "XXXVII. Political Phrases (pp. 238–242)"
+      ],
+      [
+       "todo",
+       "XXXVIII. Banking and Stockbroking Phrases (pp. 243–247)"
+      ],
+      [
+       "todo",
+       "XXXIX. Insurance and Shipping Phrases (pp. 248–253)"
+      ],
+      [
+       "todo",
+       "XL. Technical and Railway Phrases (pp. 254–259)"
+      ],
+      [
+       "todo",
+       "XLI. Legal Phrases (pp. 260–263)"
+      ],
+      [
+       "todo",
+       "XLII. Theological Phrases (pp. 264–267)"
+      ],
+      [
+       "todo",
+       "XLIII. Special List of Words (pp. 268–284)"
+      ],
+      [
+       "todo",
+       "XLIV. Shorthand in Practice (pp. 285–287)"
       ]
      ],
      "cat": "Theory Chapters"

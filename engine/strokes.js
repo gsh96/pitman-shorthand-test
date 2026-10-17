@@ -90,7 +90,13 @@ export function buildStroke(name, { length = 'normal', heavy, reverse = false } 
     for (let i = 0; i <= N_SAMPLES; i++) pts.push(add(c, rot(r0, sense * deg(90) * (i / N_SAMPLES))));
   }
   const extras = [];
-  if (def.circle) extras.push({ type: 'circle', c: sub(start, mul(dir, CAL.hCircle)), r: CAL.hCircle, heavy: false });
+  if (def.circle) {
+    // 2024 Ch. I table / Ex 1-3: the circle sits behind the start, turned to
+    // the right of the direction of writing: upward H = circle below and to the
+    // right; downward H = the "9" shape (circle above, a little to the left).
+    const side = perpR(dir), a = deg(CAL.hCircleBack);
+    extras.push({ type: 'circle', c: add(start, mul(add(mul(side, Math.cos(a)), mul(dir, -Math.sin(a))), CAL.hCircle)), r: CAL.hCircle, heavy: false });
+  }
   let entry = start;
   if (def.hook) {
     const n = def.hook === 'L' ? perpL(dir) : perpR(dir);
