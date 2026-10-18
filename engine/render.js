@@ -3,7 +3,14 @@
 // tapered at both ends (as in printed Pitman).
 import { sub, perpL, norm } from './geometry.js';
 import { CAL } from './calibration.js';
-import { rampW } from './composer.js';
+import { rampW, arcW, JOIN, JOIN_MODES, setJoinTaper } from './composer.js';
+export { JOIN_MODES, setJoinTaper };
+/** px width of a blended heavy straight at t, and the extra round caps */
+const rampPx = (s, t) => STYLE.light + (STYLE.heavy - STYLE.light) * rampW(s, t);
+/** px width of a heavy curve at t (composer arcW) */
+const arcPx = (s, t) => STYLE.light + (STYLE.heavy - STYLE.light) * arcW(s, t);
+// non-default modes round the joint end at its own width (flat ends show as notches)
+const jointCap = () => JOIN.mode !== 'ramp' && !!JOIN_MODES[JOIN.mode];
 
 // line widths follow the measured print proportions (calibration.js)
 export const STYLE = { k: 72, light: +(CAL.light * 72).toFixed(2), heavy: +(CAL.heavy * 72).toFixed(2), ink: '#111' };
@@ -22,13 +29,14 @@ function taperedArc(pts, o, s = {}) {
     const a = pts[Math.max(0, i - 1)], b = pts[Math.min(n, i + 1)];
     const nn = perpL(norm(sub(b, a)));
     const t = i / n;
-    const full = (s.thickStart && t < 0.5) || (s.thickEnd && t > 0.5); // thick-to-thick joint: no taper
-    const w = (STYLE.light + (STYLE.heavy - STYLE.light) * (full ? 1 : Math.pow(Math.sin(Math.PI * t), 0.7))) / STYLE.k / 2;
+    const w = arcPx(s, t) / STYLE.k / 2; // thick-to-thick joint: no taper; joints ease (arcW)
     left.push({ x: p.x + nn.x * w, y: p.y + nn.y * w });
     right.push({ x: p.x - nn.x * w, y: p.y - nn.y * w });
   });
   const poly = [...left, ...right.reverse()];
-  return `<polygon points="${poly.map((p) => P(p, o)).join(' ')}" fill="${STYLE.ink}"/>` + polyline(pts, o, STYLE.light);
+  let out = `<polygon points="${poly.map((p) => P(p, o)).join(' ')}" fill="${STYLE.ink}"/>` + polyline(pts, o, STYLE.light);
+  if (jointCap()) for (const [p, t] of [[pts[0], 0], [pts[n], 1]]) out += `<circle cx="${f(o.x + p.x * STYLE.k)}" cy="${f(o.y - p.y * STYLE.k)}" r="${f(arcPx(s, t) / 2)}" fill="${STYLE.ink}"/>`;
+  return out;
 }
 
 /** hook on a heavy straight stroke: printed hooks are part of the stroke, so
@@ -63,9 +71,9 @@ function blendedLine(s, o) {
     left.push({ x: p.x + nn.x * w, y: p.y + nn.y * w }); right.push({ x: p.x - nn.x * w, y: p.y - nn.y * w });
   }
   let out = `<polygon points="${[...left, ...right.reverse()].map((p) => P(p, o)).join(' ')}" fill="${STYLE.ink}"/>` + polyline([a, b], o, STYLE.light);
-  const cap = (p) => `<circle cx="${f(o.x + p.x * STYLE.k)}" cy="${f(o.y - p.y * STYLE.k)}" r="${f(STYLE.heavy / 2)}" fill="${STYLE.ink}"/>`;
-  if (!s.rampStart) out += cap(a);
-  if (!s.rampEnd) out += cap(b);
+  const cap = (p, w) => `<circle cx="${f(o.x + p.x * STYLE.k)}" cy="${f(o.y - p.y * STYLE.k)}" r="${f(w / 2)}" fill="${STYLE.ink}"/>`;
+  if (!s.rampStart) out += cap(a, rampPx(s, 0)); else if (jointCap()) out += cap(a, rampPx(s, 0));
+  if (!s.rampEnd) out += cap(b, rampPx(s, 1)); else if (jointCap()) out += cap(b, rampPx(s, 1));
   return out;
 }
 
@@ -239,8 +247,8 @@ export function penPieces(elements) {
     // the stroke itself, widths as in elementsToSvg
     const n = s.pts.length - 1;
     let W, caps = [];
-    if (s.kind === 'arc' && s.heavy) W = s.pts.map((_, i) => { const t = i / n, full = (s.thickStart && t < 0.5) || (s.thickEnd && t > 0.5); return STYLE.light + (STYLE.heavy - STYLE.light) * (full ? 1 : Math.pow(Math.sin(Math.PI * t), 0.7)); });
-    else if (s.heavy && (s.rampStart || s.rampEnd)) { W = s.pts.map((_, i) => STYLE.light + (STYLE.heavy - STYLE.light) * rampW(s, i / n)); if (!s.rampStart) caps.push([s.pts[0], STYLE.heavy]); }
+    if (s.kind === 'arc' && s.heavy) { W = s.pts.map((_, i) => arcPx(s, i / n)); if (jointCap()) caps.push([s.pts[0], arcPx(s, 0)]); }
+    else if (s.heavy && (s.rampStart || s.rampEnd)) { W = s.pts.map((_, i) => STYLE.light + (STYLE.heavy - STYLE.light) * rampW(s, i / n)); if (!s.rampStart) caps.push([s.pts[0], rampPx(s, 0)]); else if (jointCap()) caps.push([s.pts[0], rampPx(s, 0)]); }
     else W = s.pts.map(() => (s.heavy ? STYLE.heavy : STYLE.light));
     const body = piece(s.pts, W, (o) => elementsToSvg([{ type: 'stroke', stroke: { ...s, extras: [] } }], o), caps);
     out.push(...pre, body, ...post);
@@ -253,7 +261,8 @@ export function partialSvg(pieces, d, o) {
   let out = '', acc = 0;
   for (const p of pieces) {
     if (d <= acc && p.len > 0) break;
-    out += p.svg(p.len ? Math.min(1, (d - acc) / p.len) : 1, o);
+    const u = p.len ? (d - acc) / p.len : 1;
+    out += p.svg(u > 1 - 1e-9 ? 1 : u, o); // float sums: the pen at the end draws the exact static piece
     acc += p.len;
   }
   return out;

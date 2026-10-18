@@ -1,6 +1,6 @@
 // Project checklist. status: done | wip | todo. Optional 3rd item field overrides the group's category.
 window.TRACKER = {
- "updated": "2026-10-18 13:09 IST",
+ "updated": "2026-10-18 15:30 IST",
  "phases": [
   {
    "id": "P0",
@@ -264,7 +264,7 @@ window.TRACKER = {
        "Outlines & Accuracy"
       ],
       [
-       "wip",
+       "done",
        "Round 2/3: Srihari re-checks the 100 changed Chapter I outlines (rounds 3-4 redrew some again: 101 badged; his 3 unchanged \"Correct\" marks kept)",
        "Outlines & Accuracy"
       ],
@@ -349,6 +349,11 @@ window.TRACKER = {
        "Outlines & Accuracy"
       ],
       [
+       "done",
+       "Thick/thin joins: book-style F chosen by Srihari and applied to straights and curves",
+       "Outlines & Accuracy"
+      ],
+      [
        "todo",
        "Text vs. drawing: the 2024 text puts CH at 30° from the perpendicular (≈ -120°); the print measures ≈ -107° (engine follows the print) — confirm with Srihari",
        "Outlines & Accuracy"
@@ -360,11 +365,11 @@ window.TRACKER = {
      "name": "Theory chapters, 2024 edition (each: build rules → Srihari checks → fix → 100%)",
      "items": [
       [
-       "wip",
-       "I. The Consonants (pp. 1–8) — round 1 reviewed and fixed; 100 unique outlines after dedupe by drawn outline (round 6); changed items badged, awaiting Srihari's re-check"
+       "done",
+       "I. The Consonants (pp. 1–8) — APPROVED by Srihari (100 unique outlines, rounds 1–7)"
       ],
       [
-       "todo",
+       "wip",
        "II. The Vowels (pp. 9–13)"
       ],
       [

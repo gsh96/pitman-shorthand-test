@@ -399,6 +399,20 @@ export function composeOutline(tokens, opts = {}) {
     if (!it.hookStart && ((prev && (!prev.heavy || circIn)) || (!prev && circIn))) { s.rampStart = true; s.thickStart = false; }
     if (!it.hookEnd && ((next && (!next.heavy || circOut)) || (!next && circOut))) { s.rampEnd = true; s.thickEnd = false; }
   }
+  // Srihari, round 6 (variant F 'book' chosen): heavy CURVES get the same
+  // treatment where they meet a light stroke, a hook or a circle: they ease
+  // to about the light width over the last part of the stroke instead of
+  // narrowing to a point. A free end tapers gently (book prints). A
+  // thick-to-thick joint stays full width (set above).
+  for (let k = 0; k < strokes.length; k++) {
+    const s = strokes[k], it = items[cIdx[k]];
+    if (!s.heavy || s.kind !== 'arc') continue;
+    const prev = strokes[k - 1], next = strokes[k + 1];
+    const circIn = (pres[k] || []).length || (k > 0 && (medialCircle[k - 1] || []).length);
+    const circOut = (posts[k] || []).length || (medialCircle[k] || []).length;
+    if (!s.thickStart && (prev || circIn || it.hookStart)) s.rampStart = true;
+    if (!s.thickEnd && (next || circOut || it.hookEnd)) s.rampEnd = true;
+  }
   // tick-the, vowels
   let firstPlace = null;
   items.forEach((it, i) => {
@@ -533,17 +547,72 @@ function runsOver(A, B) {
  *  light stroke / circle (smoothstep over CAL.blendRamp of the stroke) */
 export function rampW(s, t) {
   const sm = (x) => { const u = Math.min(1, Math.max(0, x)); return u * u * (3 - 2 * u); };
-  let w = 1;
-  if (s.rampStart) w = Math.min(w, sm(t / CAL.blendRamp));
-  if (s.rampEnd) w = Math.min(w, sm((1 - t) / CAL.blendRamp));
+  if (JOIN.mode === 'ramp' || !JOIN_MODES[JOIN.mode]) { // default (unchanged)
+    let w = 1;
+    if (s.rampStart) w = Math.min(w, sm(t / CAL.blendRamp));
+    if (s.rampEnd) w = Math.min(w, sm((1 - t) / CAL.blendRamp));
+    return w;
+  }
+  const M = JOIN_MODES[JOIN.mode];
+  const curve = { smooth: sm, out: (x) => { const u = Math.min(1, Math.max(0, x)); return 1 - (1 - u) * (1 - u); } };
+  const ease = (u, e) => e.to + (1 - e.to) * (curve[e.curve || 'smooth'])(u / e.len);
+  // a free end = no joint, no thick-to-thick joint and no hook / circle on the stroke
+  const free = !s.extras || !s.extras.length;
+  let w = M.swell ? 1 + M.swell * (Math.sin(Math.PI * t) - 0.5) : 1;
+  const st = s.rampStart ? M.joint : (free && !s.thickStart ? M.free : null);
+  const en = s.rampEnd ? M.joint : (free && !s.thickEnd ? M.free : null);
+  if (st) w = Math.min(w, ease(t, st));
+  if (en) w = Math.min(w, ease(1 - t, en));
   return w;
 }
+
+/** Thick/thin join treatment of heavy straights (Srihari, round 6: "at
+ *  thick-thin joins the thick stroke suddenly becomes thin, looking like a
+ *  pencil"). Srihari chose F ('book'), now the default; 'ramp' = the old look.
+ *  joint = ease at a joint with a light stroke / circle, free = ease at a free
+ *  end (null = full width + round cap), len = share of the stroke length,
+ *  to = weight (0 = light width, 1 = heavy) reached at the end (non-default
+ *  modes round every end at its own width, see render.js), swell = slight width swell in the middle.
+ *  Switch with setJoinTaper('short') etc. (render.js re-exports it). */
+const W15 = (CAL.light * 0.5) / (CAL.heavy - CAL.light); // weight of 1.5x the light width
+export const JOIN_MODES = {
+  ramp: { label: 'A', joint: { len: CAL.blendRamp, to: 0 }, free: null }, //          current: 25% smoothstep from light (the 'pencil')
+  short: { label: 'B', joint: { len: 0.1, to: 0 }, free: { len: 0.12, to: 0.3 } }, //   full width, 10% ease at the joint
+  blunt: { label: 'C', joint: null, free: { len: 0.12, to: 0.3 } }, //  full width to the joint, round blunt join
+  swell: { label: 'D', joint: { len: 0.2, to: W15 }, free: { len: 0.2, to: W15 } }, // full in the middle 60%, 1.5x light at the ends
+  shortRound: { label: 'E', joint: { len: 0.1, to: 0 }, free: null }, //               as B, free ends full width + round
+  // F (Srihari, round 6: chosen, the default): slight swell, medium ease; heavy
+  // curves: same joint ease, gentle taper at a free end
+  book: { label: 'F', joint: { len: 0.2, to: 0.15, curve: 'out' }, free: { len: 0.2, to: 0.5, curve: 'out' }, swell: 0.12,
+    curveFree: { len: 0.4, to: 0.12, curve: 'smooth' } },
+};
+export const JOIN = { mode: 'book' };
+/** 0..1 weight of a heavy CURVE at t. 'ramp' mode keeps the old sin^0.7
+ *  taper to a point at both ends; other modes ease at joints (rampStart /
+ *  rampEnd) as heavy straights do and taper a free end with curveFree. */
+export function arcW(s, t) {
+  const fullS = s.thickStart && t < 0.5, fullE = s.thickEnd && t > 0.5;
+  if (JOIN.mode === 'ramp' || !JOIN_MODES[JOIN.mode]) return fullS || fullE ? 1 : Math.pow(Math.sin(Math.PI * t), 0.7);
+  const M = JOIN_MODES[JOIN.mode];
+  const sm = (x) => { const u = Math.min(1, Math.max(0, x)); return u * u * (3 - 2 * u); };
+  const curve = { smooth: sm, out: (x) => { const u = Math.min(1, Math.max(0, x)); return 1 - (1 - u) * (1 - u); } };
+  const ease = (u, e) => e.to + (1 - e.to) * (curve[e.curve || 'smooth'])(u / e.len);
+  const fr = M.curveFree !== undefined ? M.curveFree : M.free;
+  let w = M.swell ? 1 + M.swell * (Math.sin(Math.PI * t) - 0.5) : 1;
+  const st = s.thickStart ? null : s.rampStart ? M.joint : fr;
+  const en = s.thickEnd ? null : s.rampEnd ? M.joint : fr;
+  if (s.thickStart && t < 0.5) w = Math.max(w, 1);
+  if (s.thickEnd && t > 0.5) w = Math.max(w, 1);
+  if (st) w = Math.min(w, ease(t, st));
+  if (en) w = Math.min(w, ease(1 - t, en));
+  return w;
+}
+export function setJoinTaper(mode) { if (!JOIN_MODES[mode]) throw new Error('unknown joinTaper ' + mode); JOIN.mode = mode; }
 /** stroke ink width at parameter t (matches render.js) */
 export function inkWidth(s, t) {
   if (!s.heavy) return CAL.light;
   if (s.kind === 'line') return CAL.light + (CAL.heavy - CAL.light) * rampW(s, t);
-  const full = (s.thickStart && t < 0.5) || (s.thickEnd && t > 0.5);
-  return CAL.light + (CAL.heavy - CAL.light) * (full ? 1 : Math.pow(Math.sin(Math.PI * t), 0.7));
+  return CAL.light + (CAL.heavy - CAL.light) * arcW(s, t);
 }
 /** lowest point of the ink of one stroke, its hooks and circles included */
 export function inkLow(s) {
