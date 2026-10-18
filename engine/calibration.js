@@ -81,9 +81,12 @@ export const CAL = {
   // vowel signs stand clear of the stroke (Srihari, Ch. II round 8):
   // 2024 pp. 11-12 gap between the ink of the stroke and of the sign ~0.10
   vowelGap: 0.1,
-  // a curve leaving a straight downstroke at its foot opens to at least this
-  // angle from it, and is written with this sweep (2024 Ch. II prints)
-  openJoinDeg: 27, openJoinSweep: 40,
+  // a curve leaving a straight downstroke at its foot starts at least this
+  // many degrees off it, on the side it runs to. The whole curve is turned
+  // about its start and keeps its normal depth (openJoinSweep null; Srihari,
+  // round 11: a flattened L "looking not curved"; 2024 prints: joined L
+  // depth ~0.13-0.21 of the chord, as deep as L alone)
+  openJoinDeg: 6, openJoinSweep: null,
   // an opening Ray followed by a downstroke (2024 pp. 10-11)
   // is printed ~1.35-1.4 strokes long and steeper (~42-46 deg), so the downstroke
   // comes back to the line, instead of a 30 deg Ray doubled in length

@@ -362,10 +362,10 @@ export function composeOutline(tokens, opts = {}) {
   };
   build();
   // a curve leaving the foot of a straight downstroke almost back along it
-  // (e.g. L after D / CH) would run up over the straight. The book opens
-  // the angle (2024 Ch. II prints): the curve leaves at a clear acute angle
-  // (about 27 deg; prints ~35) and is written flatter, bending over to the
-  // right as usual (Srihari, Ch. II round 10: "strokes overlapped").
+  // (e.g. L after D / CH) would run up over the straight (Srihari, Ch. II
+  // round 10: "strokes overlapped"). The whole curve is turned about its
+  // start so it leaves on its own side at an open angle (CAL.openJoinDeg),
+  // keeping its normal curve (round 11: not flattened).
   {
     let again = false;
     for (let k = 1; k < strokes.length; k++) {
@@ -373,18 +373,21 @@ export function composeOutline(tokens, opts = {}) {
       if (A.kind !== 'line' || A.up || isHorizontal(A) || B.kind !== 'arc' || B.extras.length || sweepBy[k] != null || angleBy[k] != null) continue;
       if ((medialCircle[k - 1] || []).length) continue;
       const back = mul(A.t1, -1);
-      const gap = Math.acos(Math.max(-1, Math.min(1, dot(back, B.t0)))) * 180 / Math.PI;
-      if (gap >= CAL.openJoinDeg) continue;
       const deg = (u) => Math.atan2(u.y, u.x) * 180 / Math.PI;
       const cd = norm(sub(endOf(B), startOf(B)));
       const sgn = Math.sign(back.x * cd.y - back.y * cd.x) || -1; // open towards the side B runs to
+      // signed: negative when B starts on the far side of A (crosses it)
+      const gap = sgn * Math.asin(Math.max(-1, Math.min(1, back.x * B.t0.y - back.y * B.t0.x))) * 180 / Math.PI;
+      if (dot(back, B.t0) <= 0 || gap >= CAL.openJoinDeg) continue; // only a curve going back up along A
       const t0 = deg(back) + sgn * CAL.openJoinDeg;
       const chord = deg(sub(endOf(B), startOf(B)));
       const turn0 = deg(B.t0) - chord; // start tangent relative to the chord (half the sweep)
+      // the curve keeps its own depth (Srihari, round 11: "L looking not
+      // curved"): the whole curved stroke is turned about its start
       const sw = CAL.openJoinSweep;
-      angleBy[k] = t0 - Math.sign(turn0) * sw / 2;
-      sweepBy[k] = sw;
-      openMsg[k] = (`acute joining ${A.name}-${B.name}: ${B.name} opened and written flatter so it does not run over ${A.name}`);
+      if (sw == null) angleBy[k] = t0 - turn0;
+      else { angleBy[k] = t0 - Math.sign(turn0) * sw / 2; sweepBy[k] = sw; }
+      openMsg[k] = (`acute joining ${A.name}-${B.name}: ${B.name} turned to leave ${A.name} at an open angle, keeping its curve`);
       again = true;
     }
     if (again) build();
