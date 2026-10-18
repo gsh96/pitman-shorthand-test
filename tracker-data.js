@@ -1,6 +1,6 @@
 // Project checklist. status: done | wip | todo. Optional 3rd item field overrides the group's category.
 window.TRACKER = {
- "updated": "2026-10-18 21:38 IST",
+ "updated": "2026-10-18 21:41 IST",
  "phases": [
   {
    "id": "P0",
@@ -440,10 +440,6 @@ window.TRACKER = {
       [
        "done",
        "  ↳ III: every exercise outline checked against the 2024 Key; the book's drawing beside each card; phonetics audit extended to Chapter III"
-      ],
-      [
-       "done",
-       "  ↳ Review site: a speaker button on every card (Chapters I–III) reads the word aloud with the device's own voice (British voice preferred)"
       ],
       [
        "todo",
