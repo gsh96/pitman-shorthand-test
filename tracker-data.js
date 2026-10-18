@@ -1,6 +1,6 @@
 // Project checklist. status: done | wip | todo. Optional 3rd item field overrides the group's category.
 window.TRACKER = {
- "updated": "2026-10-18 20:24 IST",
+ "updated": "2026-10-18 21:38 IST",
  "phases": [
   {
    "id": "P0",
@@ -374,8 +374,8 @@ window.TRACKER = {
        "I. The Consonants (pp. 1–8) — APPROVED by Srihari (100 unique outlines, rounds 1–7)"
       ],
       [
-       "wip",
-       "II. The Vowels (pp. 9–13) — built, in review (142 unique outlines)"
+       "done",
+       "II. The Vowels (pp. 9–13) — APPROVED by Srihari on 2026-10-18 (142 unique outlines, rounds 8–12)"
       ],
       [
        "done",
@@ -426,8 +426,24 @@ window.TRACKER = {
        "  ↳ II: a curve opened away from a downstroke keeps its normal curve depth (the whole curve is turned, not flattened)"
       ],
       [
-       "todo",
-       "III. Intervening Vowels and Position (pp. 14–18)"
+       "wip",
+       "III. Intervening Vowels and Position (pp. 14–18) — built, in review (150 unique outlines; repeats of Chapters I–II hidden)"
+      ],
+      [
+       "done",
+       "  ↳ III: vowels between two strokes placed by the book's rule (1st / 2nd place after the first stroke, 3rd place before the second); compound words; the outline position follows the first vowel heard"
+      ],
+      [
+       "done",
+       "  ↳ III: first grammalogues drawn as signs in their positions; capital mark drawn as the Key draws it (two short slanting lines, set a little lower)"
+      ],
+      [
+       "done",
+       "  ↳ III: every exercise outline checked against the 2024 Key; the book's drawing beside each card; phonetics audit extended to Chapter III"
+      ],
+      [
+       "done",
+       "  ↳ Review site: a speaker button on every card (Chapters I–III) reads the word aloud with the device's own voice (British voice preferred)"
       ],
       [
        "todo",

@@ -55,6 +55,9 @@ export const DIM = {
 const ATT = new Set(['s', 'ss', 'st', 'str', 'IN', 'shun']);
 function parse(tok) {
   if (isVowel(tok)) return { t: 'V', key: tok };
+  // 'ay>': the vowel is placed to the NEXT stroke, before it (2024 ¶ 22,
+  // compound words: each vowel sign goes to its own part of the word)
+  if (/>$/.test(tok) && isVowel(tok.slice(0, -1))) return { t: 'V', key: tok.slice(0, -1), toNext: true };
   if (ATT.has(tok)) return { t: 'A', a: tok };
   if (tok === 'THE') return { t: 'THE' };
   const m = /^([A-Z_]+)(?::(half|normal|double))?(\*)?(!)?((?:\+(?:r|l|n|f|shunR|shunL|shun))*)$/.exec(tok);
@@ -508,7 +511,8 @@ export function composeOutline(tokens, opts = {}) {
       const place = VOWELS[it.key].place;
       if (firstPlace === null) firstPlace = place;
       let target, side;
-      if (!prevC) { target = nextC; side = 'before'; }
+      if (it.toNext && nextC) { target = nextC; side = 'before'; }
+      else if (!prevC) { target = nextC; side = 'before'; }
       else if (!nextC) { target = prevC; side = 'after'; }
       else if (place <= 2) { target = prevC; side = 'after'; }
       else { target = nextC; side = 'before'; }
