@@ -3,6 +3,7 @@
 // tapered at both ends (as in printed Pitman).
 import { sub, perpL, norm } from './geometry.js';
 import { CAL } from './calibration.js';
+import { rampW } from './composer.js';
 
 // line widths follow the measured print proportions (calibration.js)
 export const STYLE = { k: 72, light: +(CAL.light * 72).toFixed(2), heavy: +(CAL.heavy * 72).toFixed(2), ink: '#111' };
@@ -50,12 +51,31 @@ function taperedHook(pts, o, joint) {
 }
 const P_ = (p, o) => P(p, o);
 
+/** heavy straight joined to a light stroke: one filled outline whose width
+ *  grows smoothly from the light width at the joint to the full heavy width
+ *  (and back at a light joint at its end); a free end keeps the round cap */
+function blendedLine(s, o) {
+  const a = s.pts[0], b = s.pts[s.pts.length - 1], nn = perpL(norm(sub(b, a)));
+  const N = 40, left = [], right = [];
+  for (let i = 0; i <= N; i++) {
+    const t = i / N, p = { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
+    const w = (STYLE.light + (STYLE.heavy - STYLE.light) * rampW(s, t)) / STYLE.k / 2;
+    left.push({ x: p.x + nn.x * w, y: p.y + nn.y * w }); right.push({ x: p.x - nn.x * w, y: p.y - nn.y * w });
+  }
+  let out = `<polygon points="${[...left, ...right.reverse()].map((p) => P(p, o)).join(' ')}" fill="${STYLE.ink}"/>` + polyline([a, b], o, STYLE.light);
+  const cap = (p) => `<circle cx="${f(o.x + p.x * STYLE.k)}" cy="${f(o.y - p.y * STYLE.k)}" r="${f(STYLE.heavy / 2)}" fill="${STYLE.ink}"/>`;
+  if (!s.rampStart) out += cap(a);
+  if (!s.rampEnd) out += cap(b);
+  return out;
+}
+
 export function elementsToSvg(elements, o) {
   return elements.map((e) => {
     if (e.type === 'stroke') {
       const s = e.stroke;
       let out = '';
       if (s.kind === 'arc' && s.heavy) out += taperedArc(s.pts, o, s);
+      else if (s.heavy && (s.rampStart || s.rampEnd)) out += blendedLine(s, o);
       else out += polyline(s.kind === 'line' ? [s.pts[0], s.pts[s.pts.length - 1]] : s.pts, o, s.heavy ? STYLE.heavy : STYLE.light);
       for (const x of s.extras) {
         if (x.type === 'circle') out += `<circle cx="${f(o.x + x.c.x * STYLE.k)}" cy="${f(o.y - x.c.y * STYLE.k)}" r="${f(x.r * STYLE.k)}" fill="none" stroke="${STYLE.ink}" stroke-width="${STYLE.light}"/>`;

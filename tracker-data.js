@@ -1,6 +1,6 @@
 // Project checklist. status: done | wip | todo. Optional 3rd item field overrides the group's category.
 window.TRACKER = {
- "updated": "2026-10-18 11:38 IST",
+ "updated": "2026-10-18 12:16 IST",
  "phases": [
   {
    "id": "P0",
@@ -265,7 +265,7 @@ window.TRACKER = {
       ],
       [
        "wip",
-       "Round 2/3: Srihari re-checks the 100 changed Chapter I outlines (14 redrawn again in round 3 after his answers; his 4 unchanged \"Correct\" marks kept)",
+       "Round 2/3: Srihari re-checks the 100 changed Chapter I outlines (rounds 3-4 redrew some again: 101 badged; his 3 unchanged \"Correct\" marks kept)",
        "Outlines & Accuracy"
       ],
       [
@@ -306,6 +306,26 @@ window.TRACKER = {
       [
        "done",
        "Resolved (Srihari, round 3): the first stroke sets the placement; later strokes may cross or dip below the line (the keep-on-the-line lift no longer overrides it)",
+       "Outlines & Accuracy"
+      ],
+      [
+       "done",
+       "Engine (Srihari, round 4): circles written in one movement with their stroke: H circle and circle S/Z touch the stroke at the joint and flow into or out of it along the writing direction (animation runs round the circle the same way)",
+       "Outlines & Accuracy"
+      ],
+      [
+       "done",
+       "Renderer (Srihari, round 4): a thick straight joined to a thin stroke or circle swells smoothly out of it (and thins into a following thin stroke); thick-to-thick joins stay thick",
+       "Outlines & Accuracy"
+      ],
+      [
+       "done",
+       "Engine (Srihari, round 4): an outline of horizontals has its first stroke on the line; the next may dip a little below it",
+       "Outlines & Accuracy"
+      ],
+      [
+       "done",
+       "Review site (Srihari, round 4): stroke animation is one continuous pen motion through the whole outline at constant speed (requestAnimationFrame, 60 fps)",
        "Outlines & Accuracy"
       ],
       [
@@ -637,7 +657,7 @@ window.TRACKER = {
       ],
       [
        "todo",
-       "Stroke-by-stroke drawing animation"
+       "Stroke-by-stroke drawing animation (one continuous pen motion at constant speed, as on the review site)"
       ],
       [
        "todo",

@@ -36,7 +36,7 @@
 //     first up/down stroke; all-horizontal outlines above / on the line,
 //     horizontal grammalogues in 3rd position below the line
 import { v, add, sub, mul, dot, perpL, perpR, fromAngle, norm, len, rot, deg } from './geometry.js';
-import { buildStroke, translateStroke, endOf, startOf, pointAt, isHorizontal, hookPts, insideN, withSweep } from './strokes.js';
+import { buildStroke, translateStroke, endOf, startOf, pointAt, isHorizontal, hookPts, insideN, withSweep, flowCircle } from './strokes.js';
 import { CAL } from './calibration.js';
 import { VOWELS, isVowel } from './vowels.js';
 
@@ -109,12 +109,16 @@ export function vowelMark(stroke, key, side) {
 // ---------- attachment geometry (all relative to a stroke at the origin)
 const motionN = (tan, motion) => (motion === 'R' ? perpR(tan) : perpL(tan));
 const rightHandN = (tan) => { const a = perpL(tan), b = perpR(tan); return a.x > b.x + 1e-9 ? a : b; };
-const circleAt = (p, n, R, out) => {
-  // out: unit vector pointing away from the stroke (terminal circles); printed
-  // circles sit partly beyond the stroke end (CAL.circleRadial)
+// A circle joined to a stroke is written in one movement with it (Srihari,
+// round 4): the pen runs round the circle and leaves it (or enters it) along
+// the stroke, so the circle touches the stroke at the joint p and its tangent
+// there is the stroke's direction of writing T. n = the side it lies on
+// (Left motion = anticlockwise). `out` (straights) tilts the centre along
+// the stroke by CAL.circleRadial (0 = exactly tangent).
+const circleAt = (p, n, R, out, T) => {
   let d = n;
   if (out) { const a = (CAL.circleRadial * Math.PI) / 180; d = norm(add(mul(n, Math.cos(a)), mul(out, Math.sin(a)))); }
-  return { type: 'circle', c: add(p, mul(d, R)), r: R, heavy: false };
+  return flowCircle(p, d, R, T);
 };
 /** in- before skr / str / spr (Instructor ch. on prefixes: "a small hook
  *  written in the same direction as the circle"): a small hook on the side
@@ -177,7 +181,7 @@ function decorate(s, it, pre, post, rules, ctx = {}) {
       if (circ) {
         const R = circ === 'ss' ? CAL.bigCircle : CAL.circle;
         // with in-: circle pushed back behind the start, level with the hook
-        const c = hasIN ? { type: 'circle', c: add(start, add(mul(n, R * Math.cos((CAL.inCircleBack * Math.PI) / 180)), mul(s.t0, -R * Math.sin((CAL.inCircleBack * Math.PI) / 180)))), r: R, heavy: false } : circleAt(start, n, R, mul(s.t0, -1));
+        const c = hasIN ? { type: 'circle', c: add(start, add(mul(n, R * Math.cos((CAL.inCircleBack * Math.PI) / 180)), mul(s.t0, -R * Math.sin((CAL.inCircleBack * Math.PI) / 180)))), r: R, heavy: false } : circleAt(start, n, R, mul(s.t0, -1), s.t0);
         ex.push(c); cc = c.c;
       }
       else ex.push({ type: 'polyline', pts: loopAlong(s, false, n, loop === 'st' ? CAL.loopST : CAL.loopSTR), heavy: false });
@@ -198,7 +202,7 @@ function decorate(s, it, pre, post, rules, ctx = {}) {
   } else if (circ || loop) {
     const n = straight ? motionN(s.t0, 'L') : insideN(s, false);
     initialSide = n;
-    if (circ) ex.push(circleAt(start, n, circ === 'ss' ? CAL.bigCircle : CAL.circle, straight ? mul(s.t0, -1) : null));
+    if (circ) ex.push(circleAt(start, n, circ === 'ss' ? CAL.bigCircle : CAL.circle, straight ? mul(s.t0, -1) : null, s.t0));
     else ex.push({ type: 'polyline', pts: loopAlong(s, false, n, loop === 'st' ? CAL.loopST : CAL.loopSTR), heavy: false });
   }
   // ---- final
@@ -214,7 +218,7 @@ function decorate(s, it, pre, post, rules, ctx = {}) {
     if ((fc || fl) && straight && he === 'n') {
       // ns / nst on straights: circle or loop on the hook side, hook not shown
       circleR = fc === 'ss' ? CAL.bigCircle : CAL.circle;
-      if (fc) { const c = circleAt(end, n, circleR, s.t1); ex.push(c); circleN = n; circleC = c.c; }
+      if (fc) { const c = circleAt(end, n, circleR, s.t1, s.t1); ex.push(c); circleN = n; circleC = c.c; }
       else ex.push({ type: 'polyline', pts: loopAlong(s, true, n, fl === 'st' ? CAL.loopST : CAL.loopSTR), heavy: false });
       rules.push(`n hook + ${fc || fl} on a straight stroke -> written on the hook side`);
     } else {
@@ -248,7 +252,7 @@ function decorate(s, it, pre, post, rules, ctx = {}) {
     if (fc) { circleR = CAL.circle; const c = add(end, mul(n, CAL.shun)); ex.push({ type: 'circle', c, r: circleR * 0.85, heavy: false }); }
   } else if (fc || fl) {
     const n = straight ? motionN(s.t1, 'L') : insideN(s, true);
-    if (fc) { circleR = fc === 'ss' ? CAL.bigCircle : CAL.circle; const c = circleAt(end, n, circleR, straight ? s.t1 : null); ex.push(c); circleN = n; circleC = c.c; }
+    if (fc) { circleR = fc === 'ss' ? CAL.bigCircle : CAL.circle; const c = circleAt(end, n, circleR, straight ? s.t1 : null, s.t1); ex.push(c); circleN = n; circleC = c.c; }
     else ex.push({ type: 'polyline', pts: loopAlong(s, true, n, fl === 'st' ? CAL.loopST : CAL.loopSTR), heavy: false });
   }
   if (fshun) {
@@ -322,10 +326,11 @@ export function composeOutline(tokens, opts = {}) {
       else {
         const turn = prev.t1.x * s.t0.y - prev.t1.y * s.t0.x; // >0: turning left
         n = Math.abs(turn) < 0.08 ? perpL(prev.t1) : turn > 0 ? perpR(prev.t1) : perpL(prev.t1);
-        // outside of the angle = away from the turn
-        if (Math.abs(turn) >= 0.08) { const bis = norm(sub(s.t0, prev.t1)); n = mul(bis, -1); }
+        // outside of the angle = away from the turn; the circle runs on from
+        // the first stroke (tangent to it at the joint, Srihari round 4)
+        if (Math.abs(turn) >= 0.08) { const out = mul(norm(sub(s.t0, prev.t1)), -1); n = CAL.medialFlow ? (dot(perpL(prev.t1), out) > 0 ? perpL(prev.t1) : perpR(prev.t1)) : out; }
       }
-      if (a) elements.push(circleAt(pen, n, R));
+      if (a) elements.push(circleAt(pen, n, R, null, prev.t1));
       const lp = mc.find((x) => x === 'st' || x === 'str');
       if (lp) prev.extras.push({ type: 'polyline', pts: loopAlong(prev, true, n, lp === 'st' ? CAL.loopST : CAL.loopSTR), heavy: false });
       rules.push('medial circle/loop at the joint');
@@ -380,6 +385,20 @@ export function composeOutline(tokens, opts = {}) {
     const a = strokes[k - 1], b = strokes[k], ia = items[cIdx[k - 1]], ib = items[cIdx[k]];
     if (a.heavy && b.heavy && !ia.hookEnd && !ib.hookStart && !(medialCircle[k - 1] || []).length) { a.thickEnd = true; b.thickStart = true; rules.push('thick-to-thick joining: no taper at the joint'); }
   }
+  // Srihari, round 4: a light stroke and a heavy straight are blended: the
+  // line runs on from the light stroke and swells to full thickness (and
+  // thins again into a following light stroke or circle), no block-like
+  // start. Heavy curves already taper at both ends; hooks on heavy straights
+  // carry the full width (taperedHook) and are left alone.
+  for (let k = 0; k < strokes.length; k++) {
+    const s = strokes[k], it = items[cIdx[k]];
+    if (!s.heavy || s.kind !== 'line') continue;
+    const prev = strokes[k - 1], next = strokes[k + 1];
+    const circIn = (pres[k] || []).length || (k > 0 && (medialCircle[k - 1] || []).length);
+    const circOut = (posts[k] || []).some((x) => x !== 'shun') || (medialCircle[k] || []).length;
+    if (!it.hookStart && ((prev && (!prev.heavy || circIn)) || (!prev && circIn))) { s.rampStart = true; s.thickStart = false; }
+    if (!it.hookEnd && ((next && (!next.heavy || circOut)) || (!next && circOut))) { s.rampEnd = true; s.thickEnd = false; }
+  }
   // tick-the, vowels
   let firstPlace = null;
   items.forEach((it, i) => {
@@ -423,12 +442,14 @@ export function composeOutline(tokens, opts = {}) {
         // the first up/downstroke or that up/downstroke opens the
         // outline; a horizontal after a downstroke that
         // itself follows an opening horizontal may dip.
-        if (s === anchor || !isHorizontal(s) || (i > ai && ai > 0)) return;
+        // an outline that starts with horizontals: only the first one is
+        // kept on the line, a following one may dip
+        if (s === anchor || !isHorizontal(s) || (i > ai && ai > 0) || (i < ai && i > 0)) return;
         const ja = startOf(s).y + dy, jb = endOf(s).y + dy;
         if (Math.min(ja, jb) > -0.12) lift = Math.max(lift, -(ink(s) + dy));
       });
       if (lift > 1e-6) { dy += lift; rules.push('horizontal written on the line: outline raised so it does not dip below'); }
-    } else dy = -Math.min(...strokes.map(ink));
+    } else dy = -ink(strokes[0]); // all horizontal: the first stroke rests on the line, the next may dip
     rules.push('2nd position: first up/downstroke rests on the line');
   } else if (anchor) {
     const ys = anchor.pts.map((p) => p.y);
@@ -512,10 +533,19 @@ function runsOver(A, B) {
   return near > 40; // only a long shared run counts; a tangent touch is how the book joins
 }
 
+/** 0..1 weight of a heavy straight at t: ramps from light at a joint with a
+ *  light stroke / circle (smoothstep over CAL.blendRamp of the stroke) */
+export function rampW(s, t) {
+  const sm = (x) => { const u = Math.min(1, Math.max(0, x)); return u * u * (3 - 2 * u); };
+  let w = 1;
+  if (s.rampStart) w = Math.min(w, sm(t / CAL.blendRamp));
+  if (s.rampEnd) w = Math.min(w, sm((1 - t) / CAL.blendRamp));
+  return w;
+}
 /** stroke ink width at parameter t (matches render.js) */
 export function inkWidth(s, t) {
   if (!s.heavy) return CAL.light;
-  if (s.kind === 'line') return CAL.heavy;
+  if (s.kind === 'line') return CAL.light + (CAL.heavy - CAL.light) * rampW(s, t);
   const full = (s.thickStart && t < 0.5) || (s.thickEnd && t > 0.5);
   return CAL.light + (CAL.heavy - CAL.light) * (full ? 1 : Math.pow(Math.sin(Math.PI * t), 0.7));
 }
@@ -533,7 +563,8 @@ export function shift(elements, off) {
   return elements.map((e) => {
     switch (e.type) {
       case 'stroke': return { ...e, stroke: translateStroke(e.stroke, off) };
-      case 'dot': case 'circle': return { ...e, c: t(e.c) };
+      case 'dot': return { ...e, c: t(e.c) };
+      case 'circle': return { ...e, c: t(e.c), ...(e.at ? { at: t(e.at) } : {}) };
       case 'line': return { ...e, a: t(e.a), b: t(e.b) };
       case 'polyline': return { ...e, pts: e.pts.map(t) };
       default: return e;

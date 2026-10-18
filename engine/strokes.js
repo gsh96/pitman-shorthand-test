@@ -96,8 +96,11 @@ export function buildStroke(name, { length = 'normal', heavy, reverse = false, s
     // 2024 Ch. I table / Ex 1-3: the circle sits behind the start, turned to
     // the right of the direction of writing: upward H = circle below and to the
     // right; downward H = the "9" shape (circle above, a little to the left).
+    // Srihari, round 4: the circle and the stroke are one pen movement; the
+    // circle closes at the stroke start and the stroke leaves it along the
+    // circle's tangent (hCircleBack 0 = exactly tangent)
     const side = perpR(dir), a = deg(def.up ? CAL.hCircleBackUp : CAL.hCircleBack);
-    extras.push({ type: 'circle', c: add(start, mul(add(mul(side, Math.cos(a)), mul(dir, -Math.sin(a))), CAL.hCircle)), r: CAL.hCircle, heavy: false });
+    extras.push(flowCircle(start, add(mul(side, Math.cos(a)), mul(dir, -Math.sin(a))), CAL.hCircle, dir));
   }
   let entry = start;
   if (def.hook) {
@@ -108,6 +111,14 @@ export function buildStroke(name, { length = 'normal', heavy, reverse = false, s
   }
   const t0 = norm(sub(pts[1], pts[0])), t1 = norm(sub(pts[N_SAMPLES], pts[N_SAMPLES - 1]));
   return { name, def, length: L, dir, pts, extras, heavy: heavy ?? def.heavy, up: !!def.up, kind: def.kind, bulgeN, t0, t1, entry, exit: end, reverse, sweep };
+}
+
+/** circle through joint point p, centre p + d*R; `at` and `sense` (+1 =
+ *  anticlockwise) give the pen path: the pen runs round it in the sense that
+ *  matches the stroke's direction of writing T at the joint */
+export function flowCircle(p, d, R, T) {
+  const sense = T ? (T.x * d.y - T.y * d.x >= 0 ? 1 : -1) : 1;
+  return { type: 'circle', c: add(p, mul(d, R)), r: R, heavy: false, at: p, sense };
 }
 
 /** points of a circular arc from a to b bowing to side bulgeN, `sweep` degrees */
@@ -132,7 +143,7 @@ export function translateStroke(s, off) {
   return {
     ...s,
     pts: s.pts.map(t), entry: t(s.entry), exit: t(s.exit),
-    extras: s.extras.map((e) => (e.type === 'circle' ? { ...e, c: t(e.c) } : { ...e, pts: e.pts.map(t) })),
+    extras: s.extras.map((e) => (e.type === 'circle' ? { ...e, c: t(e.c), ...(e.at ? { at: t(e.at) } : {}) } : { ...e, pts: e.pts.map(t) })),
   };
 }
 

@@ -69,7 +69,8 @@ export const CAL = {
   bigCircle: 0.21, //   large circle ses
   loopST: [0.6, 0.15], // st loop length, width: 2024 fit (first, most, influenced, next); was 0.5 x 0.13
   loopSTR: [0.68, 0.17],
-  circleRadial: -20, // deg: how far a terminal circle sits beyond the stroke end (0 = tangent, 90 = on the extension)
+  circleRadial: 0, // deg: circle S/Z on a straight: 0 = tangent at the joint, so circle and stroke are one movement (Srihari, round 4; was -20 from the overlay fit, overlay change within +/-0.0001)
+  medialFlow: false, // medial circle at an angle: false = centred on the bisector outside the angle, so it leaves the first stroke and enters the second symmetrically (tangent to the first only fitted the 2024 lists worse: 0.0211 vs 0.0210)
   inHook: 0.10, //       in- hook before skr / str (small hook opposite the circle; 2024 + 1920 fit)
   inHookSweep: 240, //  in- hook sweep (deg): tip curls back toward the stroke (closed blob)
   inCircleBack: 0, //   deg: circle after in- pushed back behind the stroke start (fit: 0 = beside it)
@@ -77,8 +78,8 @@ export const CAL = {
   wHook: 0.11, //       W / Y hook (2024 Ch. I fit; was 0.09)
   wHookLarge: 0.21, //  enlarged W hook (whether; 2024 overlay fit)
   hCircle: 0.12, //    2024 Ch. I prints (was 0.1)
-  hCircleBackUp: 45, // deg, upward H: circle hangs below the start and rests on the line (2024 Ch. I Ex 3 line 7 overlay fit: 45 best of 45-135)
-  hCircleBack: 45, // deg: H circle position at the stroke start (90 = straight behind, 0 = beside it, on the right of the writing direction)
+  hCircleBackUp: 0, // deg, upward H: 0 = the circle is tangent to the stroke at its start, one pen movement (Srihari, round 4; Ch. I overlay better than 45)
+  hCircleBack: 0, // deg: downward H likewise tangent (90 = straight behind, 0 = beside it, on the right of the writing direction)
   // line widths. Print (1920 + 2024 lists): light ~6 px, heavy 10-12 px per 55 px
   // stroke (D of deliver 10-12 px = 0.18-0.22). Light stays thin for screen
   // legibility; heavy raised from 0.125 to the print value so thick strokes
@@ -86,4 +87,5 @@ export const CAL = {
   light: 0.055,
   hookTaper: 1.2, //   hooks on heavy straights: heavy at the joint tapering to light at the tip (exponent)
   heavy: 0.18,
+  blendRamp: 0.25, //   light -> heavy straight: the heavy line swells from light width over this share of its length (Srihari, round 4; 2024 Ch. I Ex 3-4 prints)
 };
