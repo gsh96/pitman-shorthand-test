@@ -426,25 +426,21 @@ export function composeOutline(tokens, opts = {}) {
     //  * the first upstroke or downstroke rests ON the line: a downstroke ends on
     //    it, an upstroke starts on it, its hook (w, y) or circle (h) sitting on
     //    the line; the ink rests on the line, it does not hang below it
-    //  * horizontals (k g m n ng) are written on the line: one joined at line
-    //    level never dips below it (the outline is raised instead)
+    //  * an outline that opens with a horizontal (k g m n ng) keeps it on the
+    //    line; after an opening up/downstroke nothing raises the outline
     //  * strokes after the first may go through or dip below the line
     //  * all-horizontal outlines rest on the line
     const ink = (s) => inkLow(s);
     if (anchor) {
       dy = -ink(anchor);
       let lift = 0;
-      const ai = strokes.indexOf(anchor);
       strokes.forEach((s, i) => {
-        // the first stroke sets the placement (Srihari, round 3; 2024 Ch. I
-        // prints: a later stroke may dip a little below the line).
-        // A horizontal at the line is kept on it only when it comes before
-        // the first up/downstroke or that up/downstroke opens the
-        // outline; a horizontal after a downstroke that
-        // itself follows an opening horizontal may dip.
-        // an outline that starts with horizontals: only the first one is
-        // kept on the line, a following one may dip
-        if (s === anchor || !isHorizontal(s) || (i > ai && ai > 0) || (i < ai && i > 0)) return;
+        // the first stroke sets the placement (Srihari, rounds 3 and 6; 2024
+        // prints, ¶ 24): an opening up/downstroke rests on the line and
+        // nothing after it lifts the outline, so later horizontals may run
+        // along or dip a little below the line. Only an outline that OPENS
+        // with a horizontal keeps that first horizontal on the line.
+        if (i !== 0 || !isHorizontal(s)) return;
         const ja = startOf(s).y + dy, jb = endOf(s).y + dy;
         if (Math.min(ja, jb) > -0.12) lift = Math.max(lift, -(ink(s) + dy));
       });

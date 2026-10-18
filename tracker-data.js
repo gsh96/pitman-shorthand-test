@@ -1,6 +1,6 @@
 // Project checklist. status: done | wip | todo. Optional 3rd item field overrides the group's category.
 window.TRACKER = {
- "updated": "2026-10-18 12:51 IST",
+ "updated": "2026-10-18 13:09 IST",
  "phases": [
   {
    "id": "P0",
@@ -339,6 +339,16 @@ window.TRACKER = {
        "Outlines & Accuracy"
       ],
       [
+       "done",
+       "Engine (Srihari, round 6): the first downstroke always ends ON the line (¶ 24); a later horizontal no longer lifts the whole outline, it may run along or dip slightly below the line, as the print shows (4 Chapter I outlines and 16 contractions placed lower)",
+       "Outlines & Accuracy"
+      ],
+      [
+       "done",
+       "Review site (Srihari, round 6): one card per actual outline (same drawn strokes = one card, whatever the label or section; repeats listed as 'also in'); outlines reviewed in an earlier chapter are hidden in later ones (toggle to show); marks carried to the merged card, 'wrong' wins",
+       "Outlines & Accuracy"
+      ],
+      [
        "todo",
        "Text vs. drawing: the 2024 text puts CH at 30° from the perpendicular (≈ -120°); the print measures ≈ -107° (engine follows the print) — confirm with Srihari",
        "Outlines & Accuracy"
@@ -351,7 +361,7 @@ window.TRACKER = {
      "items": [
       [
        "wip",
-       "I. The Consonants (pp. 1–8) — round 1 reviewed and fixed; 104 unique outlines, all changed items badged (thick strokes slightly thinner in round 5), awaiting Srihari's re-check"
+       "I. The Consonants (pp. 1–8) — round 1 reviewed and fixed; 100 unique outlines after dedupe by drawn outline (round 6); changed items badged, awaiting Srihari's re-check"
       ],
       [
        "todo",
