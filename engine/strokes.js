@@ -70,12 +70,12 @@ export function hookPts(p, tan, n, r, atEnd, sweep = 180, tail = 0) {
 /** Build a bare stroke at the origin (no hooks/circles except the built-in
  *  W/Y hook and H circle). opts: length, heavy (thickening override),
  *  reverse (curve bows the other way: alternative FR/VR/THR forms). */
-export function buildStroke(name, { length = 'normal', heavy, reverse = false, sweep = 90 } = {}) {
+export function buildStroke(name, { length = 'normal', heavy, reverse = false, sweep = 90, angle } = {}) {
   const def = STROKES[name];
   if (!def) throw new Error(`unknown stroke ${name}`);
   const g = GEOM[def.geom || name];
   const L = (length === 'double' && def.kind === 'arc' ? CAL.doubleCurve : length === 'half' ? (CAL.halfBy[def.geom || name] ?? CAL.half) : length === 'double' ? (CAL.doubleBy[def.geom || name] ?? CAL.double) : (LENGTHS[length] ?? length)) * g.len;
-  const dir = fromAngle(length === 'double' && g.angleDouble != null ? g.angleDouble : g.angle);
+  const dir = fromAngle(angle ?? (length === 'double' && g.angleDouble != null ? g.angleDouble : g.angle));
   const start = v(0, 0);
   const end = mul(dir, L);
   const pts = [];

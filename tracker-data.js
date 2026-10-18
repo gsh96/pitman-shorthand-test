@@ -375,7 +375,7 @@ window.TRACKER = {
       ],
       [
        "wip",
-       "II. The Vowels (pp. 9–13) — built, waiting for Srihari's review (137 unique outlines)"
+       "II. The Vowels (pp. 9–13) — built, in review (142 unique outlines)"
       ],
       [
        "done",
@@ -386,8 +386,24 @@ window.TRACKER = {
        "  ↳ II: every exercise outline checked against the 2024 Key; cards show stroke directions, vowel sound, sign, place and side, guide lines, animation"
       ],
       [
+       "done",
+       "  ↳ II: Srihari's round 8 (26 ok): word pronunciation shown first on every card; vowel signs set clear of the stroke (book gap ≈ 0.1); opening Ray before a downstroke written steeper, not doubled"
+      ],
+      [
+       "done",
+       "  ↳ II: 1st position lowered nearer the line (0.5 → 0.3 of a stroke, measured in the book); 3rd position checked"
+      ],
+      [
+       "done",
+       "  ↳ II: animation writes the vowel signs after the outline, in word order (pen lift, dot tap, dash stroke)"
+      ],
+      [
+       "done",
+       "  ↳ Phonetics audit of every Chapter I and II card (RP pronunciation, strokes, vowel signs, example words) built into the review build"
+      ],
+      [
        "wip",
-       "  ↳ II: Srihari's review (round 8)"
+       "  ↳ II: Srihari's review (round 9) and 6 open questions"
       ],
       [
        "todo",

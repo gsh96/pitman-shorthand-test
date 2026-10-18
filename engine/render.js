@@ -218,8 +218,46 @@ function piece(pts, W, staticSvg, capsFull) {
     },
   };
 }
-/** pen-order pieces of an outline; sum of len = pen path length */
+// After the outline the pen lifts and writes the vowel signs in the order of
+// the word (Srihari, Ch. II round 8: "the vowel should be part of the
+// writing"), then any later marks (e.g. a capital mark). Timings are given
+// as pen-path lengths so the animation keeps one speed: a short pen-lift
+// pause (the pen dot travels to the sign), a quick tap for a dot, a short
+// stroke for a dash in its writing direction (left to right, or downward).
+export const ANIM = { lift: 0.34, tap: 0.2, dash: 0.26 };
+const isLate = (e) => !!(e.vowel || e.after);
+const ease = (u) => (u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2);
+function liftPiece(from, to) {
+  return { len: ANIM.lift, lift: true, start: from, end: to, pen: (u) => { const k = ease(Math.min(1, Math.max(0, u))); return { x: from.x + (to.x - from.x) * k, y: from.y + (to.y - from.y) * k }; }, svg: () => '' };
+}
+function latePieces(e) {
+  if (e.type === 'dot') return { len: ANIM.tap, start: e.c, end: e.c, svg(u, o) {
+    if (u >= 1) return elementsToSvg([e], o);
+    const k = 1 - Math.pow(1 - u, 3); // quick tap: grows to full size
+    return `<circle cx="${f(o.x + e.c.x * STYLE.k)}" cy="${f(o.y - e.c.y * STYLE.k)}" r="${f(e.r * STYLE.k * (0.35 + 0.65 * k))}" fill="${STYLE.ink}" opacity="${f(0.4 + 0.6 * k)}"/>`;
+  } };
+  if (e.type === 'line') {
+    const d = { x: e.b.x - e.a.x, y: e.b.y - e.a.y };
+    const fwd = Math.abs(d.x) >= Math.abs(d.y) * 0.5 ? d.x >= 0 : d.y <= 0; // left to right, else downward
+    const w = e.heavy ? STYLE.heavy * 0.8 : STYLE.light;
+    const p = piece(fwd ? [e.a, e.b] : [e.b, e.a], [w, w], (o) => elementsToSvg([e], o));
+    p.len = ANIM.dash; return p;
+  }
+  return { len: 0, start: null, svg: (u, o) => elementsToSvg([e], o) };
+}
+/** pen-order pieces of an outline; sum of len = pen path length (incl. pen lifts) */
 export function penPieces(elements) {
+  const out = penPiecesOf(elements.filter((e) => !isLate(e)));
+  let pen = out.length ? out[out.length - 1].end : null;
+  for (const e of elements.filter(isLate)) {
+    const p = latePieces(e);
+    if (p.start && pen) out.push(liftPiece(pen, p.start));
+    else if (p.start) out.push({ ...liftPiece(p.start, p.start) });
+    out.push(p); if (p.end) pen = p.end;
+  }
+  return out;
+}
+function penPiecesOf(elements) {
   const out = [];
   for (const e of elements) {
     if (e.type === 'circle') { const pts = circlePen(e); out.push(piece(pts, pts.map(() => STYLE.light), (o) => elementsToSvg([e], o))); continue; }
@@ -257,13 +295,16 @@ export function penPieces(elements) {
 }
 const circleSvg = (x, o) => `<circle cx="${f(o.x + x.c.x * STYLE.k)}" cy="${f(o.y - x.c.y * STYLE.k)}" r="${f(x.r * STYLE.k)}" fill="none" stroke="${STYLE.ink}" stroke-width="${STYLE.light}"/>`;
 /** SVG of the outline drawn up to pen distance d (engine units) */
-export function partialSvg(pieces, d, o) {
-  let out = '', acc = 0;
+export function partialSvg(pieces, d, o, opts = {}) {
+  let out = '', acc = 0, pen = null;
   for (const p of pieces) {
     if (d <= acc && p.len > 0) break;
     const u = p.len ? (d - acc) / p.len : 1;
-    out += p.svg(u > 1 - 1e-9 ? 1 : u, o); // float sums: the pen at the end draws the exact static piece
+    if (p.lift) { if (u < 1) pen = p.pen(u); }
+    else out += p.svg(u > 1 - 1e-9 ? 1 : u, o); // float sums: the pen at the end draws the exact static piece
     acc += p.len;
   }
+  // the pen in the air between the outline and a vowel sign
+  if (pen && opts.penColor) out += `<circle class="pen" cx="${f(o.x + pen.x * STYLE.k)}" cy="${f(o.y - pen.y * STYLE.k)}" r="${f(opts.penR ?? 4.5)}" fill="${opts.penColor}" opacity="0.9"/>`;
   return out;
 }

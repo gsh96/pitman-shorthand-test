@@ -102,8 +102,11 @@ export function vowelMark(stroke, key, side) {
   const V = VOWELS[key];
   const { p } = pointAt(stroke, DIM.placeT[V.place]);
   const n = side === 'before' ? beforeNormal(stroke) : mul(beforeNormal(stroke), -1);
-  if (V.mark === 'dot') return { type: 'dot', c: add(p, mul(n, DIM.dotOffset)), r: V.heavy ? DIM.dotHeavy : DIM.dotLight };
-  return { type: 'line', a: add(p, mul(n, DIM.dashIn)), b: add(p, mul(n, DIM.dashOut)), heavy: V.heavy, cap: 'round' };
+  // a clear gap (CAL.vowelGap) between the ink of the stroke and of the sign
+  const half = inkWidth(stroke, DIM.placeT[V.place]) / 2;
+  if (V.mark === 'dot') { const r = V.heavy ? DIM.dotHeavy : DIM.dotLight; return { type: 'dot', c: add(p, mul(n, Math.max(DIM.dotOffset, half + CAL.vowelGap + r))), r, vowel: true }; }
+  const a0 = Math.max(DIM.dashIn, half + CAL.vowelGap + (V.heavy ? CAL.heavy * 0.8 : CAL.light) / 2);
+  return { type: 'line', a: add(p, mul(n, a0)), b: add(p, mul(n, a0 + DIM.dashOut - DIM.dashIn)), heavy: V.heavy, cap: 'round', vowel: true };
 }
 
 // ---------- attachment geometry (all relative to a stroke at the origin)
@@ -297,7 +300,7 @@ export function composeOutline(tokens, opts = {}) {
     return positionDetached(els, opts.position ?? 2, rules);
   }
   let pen, strokes, elements;
-  const rules0 = rules.length, scaleBy = {};
+  const rules0 = rules.length, scaleBy = {}, angleBy = {};
   const build = () => {
   pen = v(0, 0); strokes = []; elements = []; rules.length = rules0;
   cIdx.forEach((ci, k) => {
@@ -305,7 +308,7 @@ export function composeOutline(tokens, opts = {}) {
     // 2024 Ch. I Ex 3-4: horizontal curves (m, n, ng) joined to other strokes are
     // printed flatter than when standing alone (sagitta ~0.13 vs 0.21 of the chord)
     const flatH = cIdx.length > 1 && ['M', 'MP', 'N', 'NG'].includes(it.name) && it.length === 'normal';
-    let s = buildStroke(it.name, { length: scaleBy[k] ?? it.length, heavy: it.heavy, reverse: it.reverse, sweep: flatH ? CAL.joinedHorizSweep : 90 });
+    let s = buildStroke(it.name, { length: scaleBy[k] ?? it.length, heavy: it.heavy, reverse: it.reverse, sweep: flatH ? CAL.joinedHorizSweep : 90, angle: angleBy[k] });
     let vowelSide = null;
     if (it.hookEnd && it.hookEnd.startsWith('shun')) {
       const nextCi = cIdx[k + 1] ?? items.length, prevCi = k ? cIdx[k - 1] : -1;
@@ -376,6 +379,13 @@ export function composeOutline(tokens, opts = {}) {
       if (d > 0.04) fix = { j, scale: (scaleBy[j] ?? 1) + d / a.dir.y / (a.length / (scaleBy[j] ?? 1)) };
     }
     if (!fix) break;
+    const A = strokes[fix.j];
+    if (fix.j === 0 && A.name === 'RAY' && fix.scale > CAL.rayRiseLen && angleBy[0] == null) {
+      // opening Ray: written steeper at CAL.rayRiseLen instead of doubled
+      const base = A.length / (scaleBy[0] ?? 1), rise = fix.scale * base * A.dir.y;
+      angleBy[0] = Math.min(60, Math.max(30, (Math.asin(Math.min(1, rise / (CAL.rayRiseLen * base))) * 180) / Math.PI));
+      scaleBy[0] = CAL.rayRiseLen; build(); rules.push('opening Ray before a downstroke written steeper, not longer'); continue;
+    }
     scaleBy[fix.j] = fix.scale; build();
   }
   if (Object.keys(scaleBy).length) rules.push('upstroke written longer so the following downstroke returns to the line');
@@ -495,7 +505,7 @@ export function composeOutline(tokens, opts = {}) {
   } else if (anchor) {
     const ys = anchor.pts.map((p) => p.y);
     const lo = Math.min(...ys), hi = Math.max(...ys);
-    dy = position === 1 ? 0.5 - lo : position === 2 ? -lo : -(lo + hi) / 2;
+    dy = position === 1 ? CAL.pos1Raise - lo : position === 2 ? -lo : -(lo + hi) / 2;
   } else {
     const ys = strokes.flatMap((s) => s.pts.map((p) => p.y));
     const lo = Math.min(...ys), hi = Math.max(...ys);
@@ -504,7 +514,7 @@ export function composeOutline(tokens, opts = {}) {
     // 2nd position: written ON the line (2024 Ch. I Ex 1 note: "m, n, ng, k, g
     // are written on the line") = the ink rests on the line
     const onLine = (strokes.some((s) => s.heavy) ? CAL.heavy : CAL.light) / 2;
-    dy = position === 3 && opts.below3 ? -0.07 - hi : (position === 1 ? 0.5 : onLine) - lo;
+    dy = position === 3 && opts.below3 ? -0.07 - hi : (position === 1 ? CAL.pos1Raise : onLine) - lo;
   }
   return { elements: shift(elements, v(0, dy)), strokes: strokes.map((s) => s.name), rules, position, vowels: vinfo };
 }

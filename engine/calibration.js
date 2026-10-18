@@ -74,6 +74,17 @@ export const CAL = {
   inHook: 0.10, //       in- hook before skr / str (small hook opposite the circle; 2024 + 1920 fit)
   inHookSweep: 240, //  in- hook sweep (deg): tip curls back toward the stroke (closed blob)
   inCircleBack: 0, //   deg: circle after in- pushed back behind the stroke start (fit: 0 = beside it)
+  // Srihari, Ch. II round 8: 1st position sits nearer the line. 2024 Ch. II
+  // prints (pp. 10-12, 18 outlines): the first downstroke ends ~0.26 of a
+  // stroke above the line (ink), 1st-position horizontals ~0.30
+  pos1Raise: 0.3,
+  // vowel signs stand clear of the stroke (Srihari, Ch. II round 8):
+  // 2024 pp. 11-12 gap between the ink of the stroke and of the sign ~0.10
+  vowelGap: 0.1,
+  // an opening Ray followed by a downstroke (2024 pp. 10-11)
+  // is printed ~1.35-1.4 strokes long and steeper (~42-46 deg), so the downstroke
+  // comes back to the line, instead of a 30 deg Ray doubled in length
+  rayRiseLen: 1.4,
   upToLine: 0.12, // max shortening of a final upstroke so it ends on the line (Ch. I dpl, round 6)
   joinedHorizSweep: 60, // deg: m / n / ng joined to other strokes (2024 Ch. I Ex 3-4 prints; 90 = quarter circle when alone)
   wHook: 0.11, //       W / Y hook (2024 Ch. I fit; was 0.09)
