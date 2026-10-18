@@ -147,3 +147,114 @@ export function svgDoc(w, h, body, bg = '#fff') {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><rect width="100%" height="100%" fill="${bg}"/>${body}</svg>`;
 }
 export { esc };
+
+// ---------- progressive drawing for the stroke animation -------------------
+// The animation is drawn from the geometry itself (no SVG masks or dash
+// tricks, which some browsers clip or fail to repaint): the outline is split
+// into pen-order pieces (initial circle / hook, stroke, final hook / circle),
+// and each frame draws every piece up to the pen position with the same
+// widths as the static drawing (thin-to-thick blending included).
+const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+const near2 = (a, b) => dist(a, b) < 0.02;
+/** first fraction u (by arc length) of a point list, last point interpolated */
+function cut(pts, W, u) {
+  if (u >= 1) return { pts, W };
+  const acc = [0];
+  for (let i = 1; i < pts.length; i++) acc.push(acc[i - 1] + dist(pts[i], pts[i - 1]));
+  const L = acc[acc.length - 1] * Math.max(0, u);
+  const P = [pts[0]], Q = [W[0]];
+  for (let i = 1; i < pts.length; i++) {
+    if (acc[i] <= L) { P.push(pts[i]); Q.push(W[i]); continue; }
+    const f0 = (L - acc[i - 1]) / ((acc[i] - acc[i - 1]) || 1);
+    P.push({ x: pts[i - 1].x + (pts[i].x - pts[i - 1].x) * f0, y: pts[i - 1].y + (pts[i].y - pts[i - 1].y) * f0 }); Q.push(W[i - 1] + (W[i] - W[i - 1]) * f0);
+    break;
+  }
+  return { pts: P, W: Q };
+}
+/** variable-width ribbon (px widths W) along pts, light centre line on top */
+function ribbon(pts, W, o, caps) {
+  if (pts.length < 2) return '';
+  const n = pts.length - 1, left = [], right = [];
+  pts.forEach((p, i) => {
+    // tangent from the nearest neighbours that are not (almost) the same
+    // point: the cut tip is interpolated and may sit on top of a sample
+    let j = i + 1; while (j < n && dist(pts[j], p) < 1e-3) j++;
+    let k = i - 1; while (k > 0 && dist(pts[k], p) < 1e-3) k--;
+    const A = pts[Math.max(0, k)], B = pts[Math.min(n, j)];
+    const nn = perpL(norm(sub(dist(A, B) > 1e-6 ? B : pts[n], dist(A, B) > 1e-6 ? A : pts[0])));
+    const w = W[i] / STYLE.k / 2;
+    left.push({ x: p.x + nn.x * w, y: p.y + nn.y * w }); right.push({ x: p.x - nn.x * w, y: p.y - nn.y * w });
+  });
+  let out = `<polygon points="${[...left, ...right.reverse()].map((p) => P(p, o)).join(' ')}" fill="${STYLE.ink}"/>` + polyline(pts, o, STYLE.light);
+  for (const [p, w] of caps || []) out += `<circle cx="${f(o.x + p.x * STYLE.k)}" cy="${f(o.y - p.y * STYLE.k)}" r="${f(w / 2)}" fill="${STYLE.ink}"/>`;
+  return out;
+}
+function circlePen(x) {
+  const from = x.at || { x: x.c.x, y: x.c.y + x.r }, sense = x.sense || 1;
+  const a0 = Math.atan2(from.y - x.c.y, from.x - x.c.x), pts = [];
+  for (let i = 0; i <= 48; i++) { const a = a0 + (sense * 2 * Math.PI * i) / 48; pts.push({ x: x.c.x + x.r * Math.cos(a), y: x.c.y + x.r * Math.sin(a) }); }
+  return pts;
+}
+function piece(pts, W, staticSvg, capsFull) {
+  let L = 0; for (let i = 1; i < pts.length; i++) L += dist(pts[i], pts[i - 1]);
+  const constW = W.every((w) => w === W[0]);
+  return {
+    len: L, start: pts[0], end: pts[pts.length - 1], pts,
+    svg(u, o) {
+      if (u >= 1) return staticSvg(o);
+      const c = cut(pts, W, u);
+      if (c.pts.length < 2) return '';
+      if (constW) return polyline(c.pts, o, W[0]);
+      // the moving tip is round like the pen nib (no flat cut)
+      return ribbon(c.pts, c.W, o, [...(capsFull || []).filter(([p]) => p === pts[0]), [c.pts[c.pts.length - 1], c.W[c.W.length - 1]]]);
+    },
+  };
+}
+/** pen-order pieces of an outline; sum of len = pen path length */
+export function penPieces(elements) {
+  const out = [];
+  for (const e of elements) {
+    if (e.type === 'circle') { const pts = circlePen(e); out.push(piece(pts, pts.map(() => STYLE.light), (o) => elementsToSvg([e], o))); continue; }
+    if (e.type === 'line') { out.push(piece([e.a, e.b], [e.heavy ? STYLE.heavy * 0.8 : STYLE.light, e.heavy ? STYLE.heavy * 0.8 : STYLE.light], (o) => elementsToSvg([e], o))); continue; }
+    if (e.type === 'polyline') { out.push(piece(e.pts, e.pts.map(() => (e.heavy ? STYLE.heavy * 0.8 : STYLE.light)), (o) => elementsToSvg([e], o))); continue; }
+    if (e.type !== 'stroke') { out.push({ len: 0, svg: (u, o) => elementsToSvg([e], o) }); continue; }
+    const s = e.stroke, a = s.pts[0], b = s.pts[s.pts.length - 1];
+    const pre = [], post = [];
+    const ex = (x) => {
+      if (x.type === 'circle') { const pts = circlePen(x); return piece(pts, pts.map(() => STYLE.light), (o) => circleSvg(x, o)); }
+      const heavyHook = x.joint && s.heavy && s.kind === 'line';
+      if (!heavyHook) return piece(x.pts, x.pts.map(() => STYLE.light), (o) => polyline(x.pts, o, STYLE.light));
+      // widths as taperedHook: heavy at the stroke, light at the tip
+      const Pj = x.joint === 'end' ? [...x.pts].reverse() : x.pts; let tot = 0; const acc = [0];
+      for (let i = 1; i < Pj.length; i++) { tot += dist(Pj[i], Pj[i - 1]); acc.push(tot); }
+      let W = Pj.map((_, i) => STYLE.light + (STYLE.heavy - STYLE.light) * Math.pow(1 - (tot ? acc[i] / tot : 1), CAL.hookTaper));
+      if (x.joint === 'end') W = W.reverse();
+      return piece(x.pts, W, (o) => taperedHook(x.pts, o, x.joint));
+    };
+    for (const x of s.extras) {
+      if (x.type === 'circle') { const ca = x.at ? near2(x.at, a) : dist(x.c, a) <= dist(x.c, b); (ca ? pre : post).push(ex(x)); }
+      else if (near2(x.pts[x.pts.length - 1], a)) pre.push(ex(x));
+      else post.push(ex(x));
+    }
+    // the stroke itself, widths as in elementsToSvg
+    const n = s.pts.length - 1;
+    let W, caps = [];
+    if (s.kind === 'arc' && s.heavy) W = s.pts.map((_, i) => { const t = i / n, full = (s.thickStart && t < 0.5) || (s.thickEnd && t > 0.5); return STYLE.light + (STYLE.heavy - STYLE.light) * (full ? 1 : Math.pow(Math.sin(Math.PI * t), 0.7)); });
+    else if (s.heavy && (s.rampStart || s.rampEnd)) { W = s.pts.map((_, i) => STYLE.light + (STYLE.heavy - STYLE.light) * rampW(s, i / n)); if (!s.rampStart) caps.push([s.pts[0], STYLE.heavy]); }
+    else W = s.pts.map(() => (s.heavy ? STYLE.heavy : STYLE.light));
+    const body = piece(s.pts, W, (o) => elementsToSvg([{ type: 'stroke', stroke: { ...s, extras: [] } }], o), caps);
+    out.push(...pre, body, ...post);
+  }
+  return out;
+}
+const circleSvg = (x, o) => `<circle cx="${f(o.x + x.c.x * STYLE.k)}" cy="${f(o.y - x.c.y * STYLE.k)}" r="${f(x.r * STYLE.k)}" fill="none" stroke="${STYLE.ink}" stroke-width="${STYLE.light}"/>`;
+/** SVG of the outline drawn up to pen distance d (engine units) */
+export function partialSvg(pieces, d, o) {
+  let out = '', acc = 0;
+  for (const p of pieces) {
+    if (d <= acc && p.len > 0) break;
+    out += p.svg(p.len ? Math.min(1, (d - acc) / p.len) : 1, o);
+    acc += p.len;
+  }
+  return out;
+}

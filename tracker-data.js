@@ -1,6 +1,6 @@
 // Project checklist. status: done | wip | todo. Optional 3rd item field overrides the group's category.
 window.TRACKER = {
- "updated": "2026-10-18 12:16 IST",
+ "updated": "2026-10-18 12:51 IST",
  "phases": [
   {
    "id": "P0",
@@ -329,6 +329,16 @@ window.TRACKER = {
        "Outlines & Accuracy"
       ],
       [
+       "done",
+       "Review site (Srihari, round 5): animation re-implemented from the outline geometry (no SVG masks): each frame redraws the ink up to the pen position, so it works the same in Chrome and Safari and the last frame is exactly the static drawing; a tap during the animation restarts it",
+       "Outlines & Accuracy"
+      ],
+      [
+       "done",
+       "Renderer (Srihari, round 5): thick strokes made slightly thinner (0.18 → 0.145 of a stroke length, measured against the 2024 print); thin strokes and the thin-to-thick blending unchanged",
+       "Outlines & Accuracy"
+      ],
+      [
        "todo",
        "Text vs. drawing: the 2024 text puts CH at 30° from the perpendicular (≈ -120°); the print measures ≈ -107° (engine follows the print) — confirm with Srihari",
        "Outlines & Accuracy"
@@ -341,7 +351,7 @@ window.TRACKER = {
      "items": [
       [
        "wip",
-       "I. The Consonants (pp. 1–8) — round 1 reviewed and fixed; 104 unique outlines, 100 changed, awaiting Srihari's re-check"
+       "I. The Consonants (pp. 1–8) — round 1 reviewed and fixed; 104 unique outlines, all changed items badged (thick strokes slightly thinner in round 5), awaiting Srihari's re-check"
       ],
       [
        "todo",

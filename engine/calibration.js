@@ -86,6 +86,6 @@ export const CAL = {
   // read as heavy as in the book.
   light: 0.055,
   hookTaper: 1.2, //   hooks on heavy straights: heavy at the joint tapering to light at the tip (exponent)
-  heavy: 0.18,
+  heavy: 0.145, //     Srihari, round 5: "too thick, slightly thinner" (was 0.18). 2024 print: heavy straights 0.12-0.16 of a stroke wide, light 0.087 (scan blur adds ~0.03)
   blendRamp: 0.25, //   light -> heavy straight: the heavy line swells from light width over this share of its length (Srihari, round 4; 2024 Ch. I Ex 3-4 prints)
 };
