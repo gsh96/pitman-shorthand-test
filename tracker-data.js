@@ -1,6 +1,6 @@
 // Project checklist. status: done | wip | todo. Optional 3rd item field overrides the group's category.
 window.TRACKER = {
- "updated": "2026-10-18 11:02 IST",
+ "updated": "2026-10-18 11:38 IST",
  "phases": [
   {
    "id": "P0",
@@ -265,7 +265,7 @@ window.TRACKER = {
       ],
       [
        "wip",
-       "Round 2: Srihari re-checks the 100 changed Chapter I outlines (his 4 unchanged \"Correct\" marks kept)",
+       "Round 2/3: Srihari re-checks the 100 changed Chapter I outlines (14 redrawn again in round 3 after his answers; his 4 unchanged \"Correct\" marks kept)",
        "Outlines & Accuracy"
       ],
       [
@@ -279,13 +279,13 @@ window.TRACKER = {
        "Outlines & Accuracy"
       ],
       [
-       "todo",
-       "Question for Srihari: uniform stroke length makes a downstroke following an upstroke end below the line; the print lengthens the upstroke. Which to follow?",
+       "done",
+       "Resolved (Srihari, round 3): an upstroke followed by a downstroke is written longer so the downstroke returns to the line, as printed (general engine rule)",
        "Outlines & Accuracy"
       ],
       [
-       "todo",
-       "Resolve 2024 text vs. drawing conflict: Ray angle (text 30°, printed ≈ 41°) — confirm with Srihari",
+       "done",
+       "Resolved (Srihari, round 3): Ray at 30° as the 2024 text says (print ≈ 41°); W, Y and upward H keep their printed slopes (the text gives no angle for them)",
        "Outlines & Accuracy"
       ],
       [
@@ -301,6 +301,16 @@ window.TRACKER = {
       [
        "done",
        "Engine: H joins fixed (circle rests on the line); joined curves no longer overlap; flatter joined M/N",
+       "Outlines & Accuracy"
+      ],
+      [
+       "done",
+       "Resolved (Srihari, round 3): the first stroke sets the placement; later strokes may cross or dip below the line (the keep-on-the-line lift no longer overrides it)",
+       "Outlines & Accuracy"
+      ],
+      [
+       "todo",
+       "Text vs. drawing: the 2024 text puts CH at 30° from the perpendicular (≈ -120°); the print measures ≈ -107° (engine follows the print) — confirm with Srihari",
        "Outlines & Accuracy"
       ]
      ],

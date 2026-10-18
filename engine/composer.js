@@ -292,15 +292,16 @@ export function composeOutline(tokens, opts = {}) {
       : [{ type: 'circle', c: v(0, 0), r: a === 'ss' ? CAL.bigCircle : CAL.circle, heavy: false }];
     return positionDetached(els, opts.position ?? 2, rules);
   }
-  let pen = v(0, 0);
-  const strokes = [];
-  const elements = [];
+  let pen, strokes, elements;
+  const rules0 = rules.length, scaleBy = {};
+  const build = () => {
+  pen = v(0, 0); strokes = []; elements = []; rules.length = rules0;
   cIdx.forEach((ci, k) => {
     const it = items[ci];
     // 2024 Ch. I Ex 3-4: horizontal curves (m, n, ng) joined to other strokes are
     // printed flatter than when standing alone (sagitta ~0.13 vs 0.21 of the chord)
     const flatH = cIdx.length > 1 && ['M', 'MP', 'N', 'NG'].includes(it.name) && it.length === 'normal';
-    let s = buildStroke(it.name, { length: it.length, heavy: it.heavy, reverse: it.reverse, sweep: flatH ? CAL.joinedHorizSweep : 90 });
+    let s = buildStroke(it.name, { length: scaleBy[k] ?? it.length, heavy: it.heavy, reverse: it.reverse, sweep: flatH ? CAL.joinedHorizSweep : 90 });
     let vowelSide = null;
     if (it.hookEnd && it.hookEnd.startsWith('shun')) {
       const nextCi = cIdx[k + 1] ?? items.length, prevCi = k ? cIdx[k - 1] : -1;
@@ -349,7 +350,30 @@ export function composeOutline(tokens, opts = {}) {
     const ei = elements.findIndex((e) => e.type === 'stroke' && e.stroke === A); if (ei >= 0) elements[ei] = { type: 'stroke', stroke: strokes[k - 1] };
     const ej = elements.findIndex((e) => e.type === 'stroke' && e.stroke === B); if (ej >= 0) elements[ej] = { type: 'stroke', stroke: strokes[k] };
   }
-  // 2024 Ch. I para 10: thick curves taper at both ends "except when a joining
+  };
+  build();
+  // Srihari, Ch. I round 3 ("follow the book's drawing"), 2024 Ch. I Ex 3-4
+  // prints: an upstroke followed (directly or across
+  // horizontals) by a downstroke is written longer, so the downstroke comes
+  // back to the level the upstroke started from (on the line in 2nd position)
+  // instead of running below it. Only full-length upstrokes are lengthened.
+  for (let iter = 0; iter < 4; iter++) {
+    const anchor0 = strokes.find((x) => !isHorizontal(x));
+    let fix = null;
+    for (let k = 1; k < strokes.length && !fix; k++) {
+      const b = strokes[k];
+      if (b.up || Math.abs(b.dir.y) < 0.3) continue;
+      let j = k - 1; while (j >= 0 && Math.abs(strokes[j].dir.y) < 0.3) j--;
+      const a = strokes[j];
+      if (!a || !a.up || items[cIdx[j]].length !== 'normal' || a.dir.y < 0.2) continue;
+      const level = a === anchor0 ? inkLow(a) : startOf(a).y - inkWidth(a, 0) / 2;
+      const d = level - (endOf(b).y - inkWidth(b, 1) / 2);
+      if (d > 0.04) fix = { j, scale: (scaleBy[j] ?? 1) + d / a.dir.y / (a.length / (scaleBy[j] ?? 1)) };
+    }
+    if (!fix) break;
+    scaleBy[fix.j] = fix.scale; build();
+  }
+  if (Object.keys(scaleBy).length) rules.push('upstroke written longer so the following downstroke returns to the line');  // 2024 Ch. I para 10: thick curves taper at both ends "except when a joining
   // such as v-g or b-ng is made": a thick stroke joined to a thick stroke stays
   // thick through the joint
   for (let k = 1; k < strokes.length; k++) {
@@ -385,17 +409,24 @@ export function composeOutline(tokens, opts = {}) {
     //    the line; the ink rests on the line, it does not hang below it
     //  * horizontals (k g m n ng) are written on the line: one joined at line
     //    level never dips below it (the outline is raised instead)
-    //  * strokes after the first may go through the line (pd, fr, sh p)
+    //  * strokes after the first may go through or dip below the line
     //  * all-horizontal outlines rest on the line
     const ink = (s) => inkLow(s);
     if (anchor) {
       dy = -ink(anchor);
       let lift = 0;
-      for (const s of strokes) {
-        if (s === anchor || !isHorizontal(s)) continue;
+      const ai = strokes.indexOf(anchor);
+      strokes.forEach((s, i) => {
+        // the first stroke sets the placement (Srihari, round 3; 2024 Ch. I
+        // prints: a later stroke may dip a little below the line).
+        // A horizontal at the line is kept on it only when it comes before
+        // the first up/downstroke or that up/downstroke opens the
+        // outline; a horizontal after a downstroke that
+        // itself follows an opening horizontal may dip.
+        if (s === anchor || !isHorizontal(s) || (i > ai && ai > 0)) return;
         const ja = startOf(s).y + dy, jb = endOf(s).y + dy;
         if (Math.min(ja, jb) > -0.12) lift = Math.max(lift, -(ink(s) + dy));
-      }
+      });
       if (lift > 1e-6) { dy += lift; rules.push('horizontal written on the line: outline raised so it does not dip below'); }
     } else dy = -Math.min(...strokes.map(ink));
     rules.push('2nd position: first up/downstroke rests on the line');

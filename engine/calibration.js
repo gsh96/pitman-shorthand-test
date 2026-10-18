@@ -21,7 +21,7 @@ export const GEOM = {
   J: { angle: -107, len: UNIT },
   K: { angle: 0, len: UNIT }, //  the 2024 print draws K longer than T (Ex 2 1.3x); uniform by rule
   G: { angle: 0, len: UNIT },
-  RAY: { angle: 41.5, len: UNIT }, // 2024 print ~40 deg (Ex 1-4, list 'are' 40.7); the text says 30 deg, the 1920 print 29.4
+  RAY: { angle: 30, len: UNIT }, // 2024 Ch. I para 12: "ray is always written up at an angle of 30 deg from the horizontal" (Srihari, round 3: follow the text; the 2024 print measures ~40)
   W: { angle: 42, len: UNIT, angleDouble: 40 }, // 2024 Ex 1-4 fit (was 30) //  we 30.3 deg, 65 px; doubled W (wonderful) 40 deg in the 2024 list
   WH: { angle: 40, len: UNIT }, // whether: 2024 list prints it steeper/shorter than we (overlay fit)
   Y: { angle: 38, len: UNIT }, //   2024 fit (was 30)
