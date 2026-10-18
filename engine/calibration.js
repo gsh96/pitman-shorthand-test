@@ -91,6 +91,13 @@ export const CAL = {
   // is printed ~1.35-1.4 strokes long and steeper (~42-46 deg), so the downstroke
   // comes back to the line, instead of a 30 deg Ray doubled in length
   rayRiseLen: 1.4,
+  // a JOINED Ray (Srihari, Ch. III round: "keep the book's": joined to another
+  // stroke that may go below the line, so some liberty). 2024 Ch. I-III
+  // prints, 12 joined Rays before a horizontal, a curve or a slanting stroke
+  // measure 37-48 deg (median 42). A standalone Ray stays at 30 deg
+  // (the text, GEOM.RAY); before a downstroke the rule above still lengthens
+  // it (up to rayRiseLen) and steepens it so the downstroke comes back
+  rayJoined: 42,
   upToLine: 0.12, // max shortening of a final upstroke so it ends on the line (Ch. I dpl, round 6)
   joinedHorizSweep: 60, // deg: m / n / ng joined to other strokes (2024 Ch. I Ex 3-4 prints; 90 = quarter circle when alone)
   wHook: 0.11, //       W / Y hook (2024 Ch. I fit; was 0.09)

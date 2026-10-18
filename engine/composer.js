@@ -311,7 +311,9 @@ export function composeOutline(tokens, opts = {}) {
     // 2024 Ch. I Ex 3-4: horizontal curves (m, n, ng) joined to other strokes are
     // printed flatter than when standing alone (sagitta ~0.13 vs 0.21 of the chord)
     const flatH = cIdx.length > 1 && ['M', 'MP', 'N', 'NG'].includes(it.name) && it.length === 'normal';
-    let s = buildStroke(it.name, { length: scaleBy[k] ?? it.length, heavy: it.heavy, reverse: it.reverse, sweep: sweepBy[k] ?? (flatH ? CAL.joinedHorizSweep : 90), angle: angleBy[k] });
+    // a joined Ray follows the book's steeper slope (CAL.rayJoined); alone it stays at 30 deg
+    const rayJ = it.name === 'RAY' && cIdx.length > 1 ? CAL.rayJoined : undefined;
+    let s = buildStroke(it.name, { length: scaleBy[k] ?? it.length, heavy: it.heavy, reverse: it.reverse, sweep: sweepBy[k] ?? (flatH ? CAL.joinedHorizSweep : 90), angle: angleBy[k] ?? rayJ });
     let vowelSide = null;
     if (it.hookEnd && it.hookEnd.startsWith('shun')) {
       const nextCi = cIdx[k + 1] ?? items.length, prevCi = k ? cIdx[k - 1] : -1;
@@ -436,11 +438,12 @@ export function composeOutline(tokens, opts = {}) {
     }
     if (!fix) break;
     const A = strokes[fix.j];
-    if (fix.j === 0 && A.name === 'RAY' && fix.scale > CAL.rayRiseLen && angleBy[0] == null) {
-      // opening Ray: written steeper at CAL.rayRiseLen instead of doubled
-      const base = A.length / (scaleBy[0] ?? 1), rise = fix.scale * base * A.dir.y;
-      angleBy[0] = Math.min(60, Math.max(30, (Math.asin(Math.min(1, rise / (CAL.rayRiseLen * base))) * 180) / Math.PI));
-      scaleBy[0] = CAL.rayRiseLen; build(); rules.push('opening Ray before a downstroke written steeper, not longer'); continue;
+    if (A.name === 'RAY' && fix.scale > CAL.rayRiseLen && angleBy[fix.j] == null) {
+      // a Ray before a downstroke (opening, or medial since the Ch. III
+      // round): written steeper at CAL.rayRiseLen instead of doubled
+      const j = fix.j, base = A.length / (scaleBy[j] ?? 1), rise = fix.scale * base * A.dir.y;
+      angleBy[j] = Math.min(60, Math.max(CAL.rayJoined, (Math.asin(Math.min(1, rise / (CAL.rayRiseLen * base))) * 180) / Math.PI));
+      scaleBy[j] = CAL.rayRiseLen; build(); rules.push(`${j === 0 ? 'opening' : 'joined'} Ray before a downstroke written steeper, not longer`); continue;
     }
     scaleBy[fix.j] = fix.scale; build();
   }

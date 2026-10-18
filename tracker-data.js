@@ -1,6 +1,6 @@
 // Project checklist. status: done | wip | todo. Optional 3rd item field overrides the group's category.
 window.TRACKER = {
- "updated": "2026-10-18 21:41 IST",
+ "updated": "2026-10-19 00:25 IST",
  "phases": [
   {
    "id": "P0",
@@ -440,6 +440,10 @@ window.TRACKER = {
       [
        "done",
        "  ↳ III: every exercise outline checked against the 2024 Key; the book's drawing beside each card; phonetics audit extended to Chapter III"
+      ],
+      [
+       "done",
+       "  ↳ III: Srihari's answers to 8 questions (round 14): the last undrawn outline now drawn as the book draws it (a logogram joined as a short tick); a joined Ray follows the book's steeper slope (about 42°; a Ray before a downstroke is steepened, not doubled), 15 cards redrawn across Chapters I–III; the other 6 questions settled with no change"
       ],
       [
        "todo",
