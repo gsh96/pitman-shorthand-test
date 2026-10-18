@@ -35,7 +35,7 @@
 //   * outline position from first vowel (1 above, 2 on, 3 through), on the
 //     first up/down stroke; all-horizontal outlines above / on the line,
 //     horizontal grammalogues in 3rd position below the line
-import { v, add, sub, mul, dot, perpL, perpR, fromAngle, norm, len, rot, deg } from './geometry.js';
+import { v, add, sub, mul, dot, perpL, perpR, fromAngle, norm, len, rot, deg, lerp } from './geometry.js';
 import { buildStroke, translateStroke, endOf, startOf, pointAt, isHorizontal, hookPts, insideN, withSweep, flowCircle } from './strokes.js';
 import { CAL } from './calibration.js';
 import { VOWELS, isVowel } from './vowels.js';
@@ -98,9 +98,9 @@ function beforeNormal(stroke) {
   return cn.y > 0 ? cn : mul(cn, -1);
 }
 
-export function vowelMark(stroke, key, side) {
+export function vowelMark(stroke, key, side, tAt) {
   const V = VOWELS[key];
-  const { p } = pointAt(stroke, DIM.placeT[V.place]);
+  const { p } = pointAt(stroke, tAt ?? DIM.placeT[V.place]);
   const n = side === 'before' ? beforeNormal(stroke) : mul(beforeNormal(stroke), -1);
   // a clear gap (CAL.vowelGap) between the ink of the stroke and of the sign
   const half = inkWidth(stroke, DIM.placeT[V.place]) / 2;
@@ -300,7 +300,7 @@ export function composeOutline(tokens, opts = {}) {
     return positionDetached(els, opts.position ?? 2, rules);
   }
   let pen, strokes, elements;
-  const rules0 = rules.length, scaleBy = {}, angleBy = {};
+  const rules0 = rules.length, scaleBy = {}, angleBy = {}, sweepBy = {}, openMsg = {};
   const build = () => {
   pen = v(0, 0); strokes = []; elements = []; rules.length = rules0;
   cIdx.forEach((ci, k) => {
@@ -308,7 +308,7 @@ export function composeOutline(tokens, opts = {}) {
     // 2024 Ch. I Ex 3-4: horizontal curves (m, n, ng) joined to other strokes are
     // printed flatter than when standing alone (sagitta ~0.13 vs 0.21 of the chord)
     const flatH = cIdx.length > 1 && ['M', 'MP', 'N', 'NG'].includes(it.name) && it.length === 'normal';
-    let s = buildStroke(it.name, { length: scaleBy[k] ?? it.length, heavy: it.heavy, reverse: it.reverse, sweep: flatH ? CAL.joinedHorizSweep : 90, angle: angleBy[k] });
+    let s = buildStroke(it.name, { length: scaleBy[k] ?? it.length, heavy: it.heavy, reverse: it.reverse, sweep: sweepBy[k] ?? (flatH ? CAL.joinedHorizSweep : 90), angle: angleBy[k] });
     let vowelSide = null;
     if (it.hookEnd && it.hookEnd.startsWith('shun')) {
       const nextCi = cIdx[k + 1] ?? items.length, prevCi = k ? cIdx[k - 1] : -1;
@@ -358,8 +358,57 @@ export function composeOutline(tokens, opts = {}) {
     const ei = elements.findIndex((e) => e.type === 'stroke' && e.stroke === A); if (ei >= 0) elements[ei] = { type: 'stroke', stroke: strokes[k - 1] };
     const ej = elements.findIndex((e) => e.type === 'stroke' && e.stroke === B); if (ej >= 0) elements[ej] = { type: 'stroke', stroke: strokes[k] };
   }
+  for (const k in openMsg) rules.push(openMsg[k]);
   };
   build();
+  // a curve leaving the foot of a straight downstroke almost back along it
+  // (e.g. L after D / CH) would run up over the straight. The book opens
+  // the angle (2024 Ch. II prints): the curve leaves at a clear acute angle
+  // (about 27 deg; prints ~35) and is written flatter, bending over to the
+  // right as usual (Srihari, Ch. II round 10: "strokes overlapped").
+  {
+    let again = false;
+    for (let k = 1; k < strokes.length; k++) {
+      const A = strokes[k - 1], B = strokes[k];
+      if (A.kind !== 'line' || A.up || isHorizontal(A) || B.kind !== 'arc' || B.extras.length || sweepBy[k] != null || angleBy[k] != null) continue;
+      if ((medialCircle[k - 1] || []).length) continue;
+      const back = mul(A.t1, -1);
+      const gap = Math.acos(Math.max(-1, Math.min(1, dot(back, B.t0)))) * 180 / Math.PI;
+      if (gap >= CAL.openJoinDeg) continue;
+      const deg = (u) => Math.atan2(u.y, u.x) * 180 / Math.PI;
+      const cd = norm(sub(endOf(B), startOf(B)));
+      const sgn = Math.sign(back.x * cd.y - back.y * cd.x) || -1; // open towards the side B runs to
+      const t0 = deg(back) + sgn * CAL.openJoinDeg;
+      const chord = deg(sub(endOf(B), startOf(B)));
+      const turn0 = deg(B.t0) - chord; // start tangent relative to the chord (half the sweep)
+      const sw = CAL.openJoinSweep;
+      angleBy[k] = t0 - Math.sign(turn0) * sw / 2;
+      sweepBy[k] = sw;
+      openMsg[k] = (`acute joining ${A.name}-${B.name}: ${B.name} opened and written flatter so it does not run over ${A.name}`);
+      again = true;
+    }
+    if (again) build();
+  }
+  // two horizontals alone, in 2nd position (e.g. N-M): the book rests BOTH on
+  // the line, the first by its lowest ink and the second by its end, so a
+  // second stroke that would end above the line (M after a sagging N) slopes
+  // gently down to it (2024 Ch. I-II prints and Key; Srihari, Ch. I round 1
+  // "M should be on the line", Ch. II round 10 "N below the line")
+  {
+    const v0 = items.find((x) => x.t === 'V');
+    const posGuess = opts.position ?? (v0 ? VOWELS[v0.key].place : 2);
+    if (posGuess === 2 && strokes.length === 2 && strokes.every(isHorizontal) && angleBy[1] == null && !strokes.some((x) => x.extras.length)) {
+      const B = strokes[1], e = endOf(B);
+      const d = (e.y - inkWidth(B, 1) / 2) - inkLow(strokes[0]);
+      const L = len(sub(e, startOf(B)));
+      if (d > 0.04 && d < L / 2) {
+        const chord = Math.atan2(e.y - startOf(B).y, e.x - startOf(B).x) * 180 / Math.PI;
+        angleBy[1] = chord - Math.sign(e.x - startOf(B).x || 1) * Math.asin(d / L) * 180 / Math.PI;
+        openMsg.h2 = `two horizontals on the line: ${B.name} slopes down so it ends on the line`;
+        build();
+      }
+    }
+  }
   // Srihari, Ch. I round 3 ("follow the book's drawing"), 2024 Ch. I Ex 3-4
   // prints: an upstroke followed (directly or across
   // horizontals) by a downstroke is written longer, so the downstroke comes
@@ -460,7 +509,20 @@ export function composeOutline(tokens, opts = {}) {
       else if (!nextC) { target = prevC; side = 'after'; }
       else if (place <= 2) { target = prevC; side = 'after'; }
       else { target = nextC; side = 'before'; }
-      elements.push(vowelMark(strokes[target.si], it.key, side));
+      // a sign must stay clearly visible (Srihari, Ch. II round 10): when
+      // another stroke of the outline runs too close to it, the sign moves
+      // along its own stroke, within the same place, to where the book has
+      // room for it (2024 Ch. II prints: a dot sits between D and a following L)
+      let mark = vowelMark(strokes[target.si], it.key, side);
+      if (strokes.length > 1) {
+        const tries = { 1: [0.1, 0.17, 0.24], 2: [0.5, 0.42, 0.36, 0.3, 0.58, 0.64], 3: [0.9, 0.83, 0.76] }[place];
+        const clear = (m) => vowelClearance(m, strokes, target.si) >= CAL.vowelGap * 0.8;
+        if (!clear(mark)) {
+          const alt = tries.map((t) => vowelMark(strokes[target.si], it.key, side, t)).find(clear);
+          if (alt) { mark = alt; rules.push(`vowel sign moved along ${strokes[target.si].name} to stay clear of the next stroke`); }
+        }
+      }
+      elements.push(mark);
       vinfo.push({ key: it.key, place, side, si: target.si, stroke: strokes[target.si].name, up: !!strokes[target.si].up, horizontal: isHorizontal(strokes[target.si]) });
     } else if (it.t === 'V' && firstPlace === null) firstPlace = VOWELS[it.key].place;
   });
@@ -496,11 +558,11 @@ export function composeOutline(tokens, opts = {}) {
       });
       if (lift > 1e-6) { dy += lift; rules.push('horizontal written on the line: outline raised so it does not dip below'); }
     } else if (strokes.length > 1) {
-      // all horizontal (Srihari, Ch. I round 6: nm, nml; 2024 p. 7 Ex 4 line
-      // 6): the outline rests on the line at its stroke ends (joints), so a
-      // first N / NG sags a little below it and a following M comes back down
-      // onto the line; a later curve may dip (kn)
-      dy = -Math.min(...strokes.flatMap((s) => [startOf(s).y - inkWidth(s, 0) / 2, endOf(s).y - inkWidth(s, 1) / 2]));
+      // all horizontal: the FIRST horizontal is written on the line, its ink
+      // resting on it, and does not sag below it (Srihari, Ch. II round 10;
+      // 2024 Ch. I-II prints and Key); a later curve may still dip a little.
+      // (Was: the stroke ends on the line, which let a first N sag below it.)
+      dy = -ink(strokes[0]);
     } else dy = -ink(strokes[0]); // a single horizontal rests on the line by its ink
     rules.push('2nd position: first up/downstroke rests on the line');
   } else if (anchor) {
@@ -567,6 +629,18 @@ const SEMI = {
 };
 
 /** does stroke B (starting where A ends) cross A or run along it, away from the joint? */
+/** ink-to-ink distance between a vowel sign and the strokes it is NOT placed against */
+function vowelClearance(m, strokes, si) {
+  const pts = m.type === 'dot' ? [m.c] : [m.a, m.b, lerp(m.a, m.b, 0.5)];
+  const r = m.type === 'dot' ? m.r : (m.heavy ? CAL.heavy * 0.8 : CAL.light) / 2;
+  let best = Infinity;
+  strokes.forEach((s, k) => {
+    if (k === si) return;
+    s.pts.forEach((q, i) => { const w = inkWidth(s, i / (s.pts.length - 1)) / 2; for (const p of pts) best = Math.min(best, Math.hypot(p.x - q.x, p.y - q.y) - w - r); });
+  });
+  return best;
+}
+
 function runsOver(A, B) {
   const J = A.pts[A.pts.length - 1];
   const o = (p, q, r) => (q.x - p.x) * (r.y - p.y) - (q.y - p.y) * (r.x - p.x);

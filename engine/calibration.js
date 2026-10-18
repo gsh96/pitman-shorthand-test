@@ -81,6 +81,9 @@ export const CAL = {
   // vowel signs stand clear of the stroke (Srihari, Ch. II round 8):
   // 2024 pp. 11-12 gap between the ink of the stroke and of the sign ~0.10
   vowelGap: 0.1,
+  // a curve leaving a straight downstroke at its foot opens to at least this
+  // angle from it, and is written with this sweep (2024 Ch. II prints)
+  openJoinDeg: 27, openJoinSweep: 40,
   // an opening Ray followed by a downstroke (2024 pp. 10-11)
   // is printed ~1.35-1.4 strokes long and steeper (~42-46 deg), so the downstroke
   // comes back to the line, instead of a 30 deg Ray doubled in length

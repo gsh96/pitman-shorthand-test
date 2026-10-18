@@ -1,6 +1,6 @@
 // Project checklist. status: done | wip | todo. Optional 3rd item field overrides the group's category.
 window.TRACKER = {
- "updated": "2026-10-18 17:40 IST",
+ "updated": "2026-10-18 19:37 IST",
  "phases": [
   {
    "id": "P0",
@@ -416,6 +416,10 @@ window.TRACKER = {
       [
        "done",
        "  ↳ Review site: each card shows the book's own drawing of that outline beside ours (tap it to open the page there); phones get a Split view (book on top, cards below)"
+      ],
+      [
+       "done",
+       "  ↳ II: review round fixes: a curve leaving a straight downstroke opens at a clear angle (no overlap); vowel signs kept clear of neighbouring strokes; two-horizontal outlines rest on the line; direction arrows never cover a vowel sign; two obscure vowels set where the book places them"
       ],
       [
        "todo",
