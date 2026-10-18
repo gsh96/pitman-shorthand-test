@@ -1,6 +1,6 @@
 // Project checklist. status: done | wip | todo. Optional 3rd item field overrides the group's category.
 window.TRACKER = {
- "updated": "2026-10-18 16:53 IST",
+ "updated": "2026-10-18 17:40 IST",
  "phases": [
   {
    "id": "P0",
@@ -410,8 +410,12 @@ window.TRACKER = {
        "  ↳ II: simple vowel-places card (1 / 2 / 3 on a downstroke, an upstroke and a horizontal) added at the start of the chapter"
       ],
       [
-       "wip",
-       "  ↳ II: 2 open questions: Ray angle before a downstroke (rule 30° vs drawing ≈ 45°); book vowel vs present-day pronunciation"
+       "done",
+       "  ↳ II: last 2 questions settled: steeper Ray before a downstroke kept; vowel signs as the book draws them"
+      ],
+      [
+       "done",
+       "  ↳ Review site: each card shows the book's own drawing of that outline beside ours (tap it to open the page there); phones get a Split view (book on top, cards below)"
       ],
       [
        "todo",
