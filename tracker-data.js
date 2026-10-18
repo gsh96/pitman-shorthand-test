@@ -1,6 +1,6 @@
 // Project checklist. status: done | wip | todo. Optional 3rd item field overrides the group's category.
 window.TRACKER = {
- "updated": "2026-10-18 15:30 IST",
+ "updated": "2026-10-18 16:53 IST",
  "phases": [
   {
    "id": "P0",
@@ -402,8 +402,16 @@ window.TRACKER = {
        "  ↳ Phonetics audit of every Chapter I and II card (RP pronunciation, strokes, vowel signs, example words) built into the review build"
       ],
       [
+       "done",
+       "  ↳ II: Srihari's answers to 6 questions (round 9): one vowel sign moved to its drawn place; one outline lifted so its last stroke rests on the line, as drawn; capital mark left to Chapter III; final L, gap and dash length kept"
+      ],
+      [
+       "done",
+       "  ↳ II: simple vowel-places card (1 / 2 / 3 on a downstroke, an upstroke and a horizontal) added at the start of the chapter"
+      ],
+      [
        "wip",
-       "  ↳ II: Srihari's review (round 9) and 6 open questions"
+       "  ↳ II: 2 open questions: Ray angle before a downstroke (rule 30° vs drawing ≈ 45°); book vowel vs present-day pronunciation"
       ],
       [
        "todo",

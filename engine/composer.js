@@ -365,7 +365,8 @@ export function composeOutline(tokens, opts = {}) {
   // horizontals) by a downstroke is written longer, so the downstroke comes
   // back to the level the upstroke started from (on the line in 2nd position)
   // instead of running below it. Only full-length upstrokes are lengthened.
-  for (let iter = 0; iter < 4; iter++) {
+  // (opts.noUpstrokeFix: skip this, for side-by-side comparisons only)
+  for (let iter = 0; iter < (opts.noUpstrokeFix ? 0 : 4); iter++) {
     const anchor0 = strokes.find((x) => !isHorizontal(x));
     let fix = null;
     for (let k = 1; k < strokes.length && !fix; k++) {
