@@ -354,6 +354,11 @@ window.TRACKER = {
        "Outlines & Accuracy"
       ],
       [
+       "done",
+       "Engine (Srihari, round 6 marks): an all-horizontal outline rests on the line at its stroke ends, so a following M touches the line; a final upstroke that comes back up after a downstroke ends on the line (6 Chapter I outlines redrawn, marks reset)",
+       "Outlines & Accuracy"
+      ],
+      [
        "todo",
        "Text vs. drawing: the 2024 text puts CH at 30° from the perpendicular (≈ -120°); the print measures ≈ -107° (engine follows the print) — confirm with Srihari",
        "Outlines & Accuracy"
@@ -370,7 +375,19 @@ window.TRACKER = {
       ],
       [
        "wip",
-       "II. The Vowels (pp. 9–13)"
+       "II. The Vowels (pp. 9–13) — built, waiting for Srihari's review (137 unique outlines)"
+      ],
+      [
+       "done",
+       "  ↳ II: vowel signs drawn by the engine: 12 vowels, dot / dash, heavy (long) / light (short), 3 places, before / after the stroke; first vowel sets the position"
+      ],
+      [
+       "done",
+       "  ↳ II: every exercise outline checked against the 2024 Key; cards show stroke directions, vowel sound, sign, place and side, guide lines, animation"
+      ],
+      [
+       "wip",
+       "  ↳ II: Srihari's review (round 8)"
       ],
       [
        "todo",

@@ -74,6 +74,7 @@ export const CAL = {
   inHook: 0.10, //       in- hook before skr / str (small hook opposite the circle; 2024 + 1920 fit)
   inHookSweep: 240, //  in- hook sweep (deg): tip curls back toward the stroke (closed blob)
   inCircleBack: 0, //   deg: circle after in- pushed back behind the stroke start (fit: 0 = beside it)
+  upToLine: 0.12, // max shortening of a final upstroke so it ends on the line (Ch. I dpl, round 6)
   joinedHorizSweep: 60, // deg: m / n / ng joined to other strokes (2024 Ch. I Ex 3-4 prints; 90 = quarter circle when alone)
   wHook: 0.11, //       W / Y hook (2024 Ch. I fit; was 0.09)
   wHookLarge: 0.21, //  enlarged W hook (whether; 2024 overlay fit)

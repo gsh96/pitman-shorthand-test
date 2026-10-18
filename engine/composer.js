@@ -378,7 +378,26 @@ export function composeOutline(tokens, opts = {}) {
     if (!fix) break;
     scaleBy[fix.j] = fix.scale; build();
   }
-  if (Object.keys(scaleBy).length) rules.push('upstroke written longer so the following downstroke returns to the line');  // 2024 Ch. I para 10: thick curves taper at both ends "except when a joining
+  if (Object.keys(scaleBy).length) rules.push('upstroke written longer so the following downstroke returns to the line');
+  // Srihari, Ch. I round 6 (dpl; 2024 p. 7 Ex 4 line 4: the L comes up to the
+  // line and stops there): a final upstroke that comes back up to the line
+  // after a downstroke ends ON the line instead of running a little past it
+  // (written up to CAL.upToLine shorter). 2nd position only.
+  {
+    const fv = items.find((x) => x.t === 'V');
+    const pos = opts.position ?? (fv ? VOWELS[fv.key].place : 2);
+    const n = strokes.length, a = strokes[n - 1], p = strokes[n - 2], k = n - 1;
+    const anchor0 = strokes.find((x) => !isHorizontal(x));
+    if (pos === 2 && n >= 2 && a.up && !p.up && p.dir.y < -0.3 && anchor0 && anchor0 !== a && !isHorizontal(strokes[0])
+      && items[cIdx[k]].length === 'normal' && !items[cIdx[k]].hookEnd && !(posts[k] || []).length && !a.extras.length) {
+      const e = endOf(a).y - inkLow(anchor0);
+      if (e > 1e-4 && e <= CAL.upToLine) {
+        const cur = scaleBy[k] ?? 1;
+        scaleBy[k] = cur - e / a.dir.y / (a.length / cur); build();
+        rules.push('final upstroke ends on the line');
+      }
+    }
+  }  // 2024 Ch. I para 10: thick curves taper at both ends "except when a joining
   // such as v-g or b-ng is made": a thick stroke joined to a thick stroke stays
   // thick through the joint
   for (let k = 1; k < strokes.length; k++) {
@@ -415,6 +434,7 @@ export function composeOutline(tokens, opts = {}) {
   }
   // tick-the, vowels
   let firstPlace = null;
+  const vinfo = []; // vowel signs drawn: which stroke, place, side (for the review cards)
   items.forEach((it, i) => {
     const prevC = [...items.slice(0, i)].reverse().find((x) => x.t === 'C');
     const nextC = items.slice(i + 1).find((x) => x.t === 'C');
@@ -430,6 +450,7 @@ export function composeOutline(tokens, opts = {}) {
       else if (place <= 2) { target = prevC; side = 'after'; }
       else { target = nextC; side = 'before'; }
       elements.push(vowelMark(strokes[target.si], it.key, side));
+      vinfo.push({ key: it.key, place, side, si: target.si, stroke: strokes[target.si].name, up: !!strokes[target.si].up, horizontal: isHorizontal(strokes[target.si]) });
     } else if (it.t === 'V' && firstPlace === null) firstPlace = VOWELS[it.key].place;
   });
   const position = opts.position ?? firstPlace ?? 2;
@@ -456,10 +477,20 @@ export function composeOutline(tokens, opts = {}) {
         // with a horizontal keeps that first horizontal on the line.
         if (i !== 0 || !isHorizontal(s)) return;
         const ja = startOf(s).y + dy, jb = endOf(s).y + dy;
-        if (Math.min(ja, jb) > -0.12) lift = Math.max(lift, -(ink(s) + dy));
+        // an opening run of 2+ horizontals (nml) rests on the line at its
+        // stroke ends, like an all-horizontal outline (see below)
+        const run = strokes[1] && isHorizontal(strokes[1]);
+        const low = run ? Math.min(ja, jb) - Math.max(inkWidth(s, 0), inkWidth(s, 1)) / 2 - dy : ink(s);
+        if (Math.min(ja, jb) > -0.12) lift = Math.max(lift, -(low + dy));
       });
       if (lift > 1e-6) { dy += lift; rules.push('horizontal written on the line: outline raised so it does not dip below'); }
-    } else dy = -ink(strokes[0]); // all horizontal: the first stroke rests on the line, the next may dip
+    } else if (strokes.length > 1) {
+      // all horizontal (Srihari, Ch. I round 6: nm, nml; 2024 p. 7 Ex 4 line
+      // 6): the outline rests on the line at its stroke ends (joints), so a
+      // first N / NG sags a little below it and a following M comes back down
+      // onto the line; a later curve may dip (kn)
+      dy = -Math.min(...strokes.flatMap((s) => [startOf(s).y - inkWidth(s, 0) / 2, endOf(s).y - inkWidth(s, 1) / 2]));
+    } else dy = -ink(strokes[0]); // a single horizontal rests on the line by its ink
     rules.push('2nd position: first up/downstroke rests on the line');
   } else if (anchor) {
     const ys = anchor.pts.map((p) => p.y);
@@ -475,7 +506,7 @@ export function composeOutline(tokens, opts = {}) {
     const onLine = (strokes.some((s) => s.heavy) ? CAL.heavy : CAL.light) / 2;
     dy = position === 3 && opts.below3 ? -0.07 - hi : (position === 1 ? 0.5 : onLine) - lo;
   }
-  return { elements: shift(elements, v(0, dy)), strokes: strokes.map((s) => s.name), rules, position };
+  return { elements: shift(elements, v(0, dy)), strokes: strokes.map((s) => s.name), rules, position, vowels: vinfo };
 }
 
 function positionDetached(els, pos, rules) {
