@@ -1,6 +1,6 @@
 // Project checklist. status: done | wip | todo. Optional 3rd item field overrides the group's category.
 window.TRACKER = {
- "updated": "2026-10-18 00:18 IST",
+ "updated": "2026-10-18 11:02 IST",
  "phases": [
   {
    "id": "P0",
@@ -259,13 +259,48 @@ window.TRACKER = {
        "Outlines & Accuracy"
       ],
       [
+       "done",
+       "Import Srihari's exported marks and turn every \"Wrong\" into an engine fix (round 1: 21 wrong + notes, Ch. I; fixes applied to all similar outlines)",
+       "Outlines & Accuracy"
+      ],
+      [
+       "wip",
+       "Round 2: Srihari re-checks the 100 changed Chapter I outlines (his 4 unchanged \"Correct\" marks kept)",
+       "Outlines & Accuracy"
+      ],
+      [
+       "done",
+       "\"Changed since your last review\" badge; marks reset only for changed outlines",
+       "Outlines & Accuracy"
+      ],
+      [
+       "done",
+       "Each unique outline shown once, with a note of where else it occurs",
+       "Outlines & Accuracy"
+      ],
+      [
        "todo",
-       "Import Srihari's exported marks and turn every \"Wrong\" into an engine fix",
+       "Question for Srihari: uniform stroke length makes a downstroke following an upstroke end below the line; the print lengthens the upstroke. Which to follow?",
        "Outlines & Accuracy"
       ],
       [
        "todo",
        "Resolve 2024 text vs. drawing conflict: Ray angle (text 30°, printed ≈ 41°) — confirm with Srihari",
+       "Outlines & Accuracy"
+      ],
+      [
+       "done",
+       "Engine: all strokes one uniform length (book ¶10)",
+       "Outlines & Accuracy"
+      ],
+      [
+       "done",
+       "Engine: line-placement rule — first up/downstroke rests on the line (upstroke starts on it, downstroke ends on it); K, G, M, N, NG stay on the line",
+       "Outlines & Accuracy"
+      ],
+      [
+       "done",
+       "Engine: H joins fixed (circle rests on the line); joined curves no longer overlap; flatter joined M/N",
        "Outlines & Accuracy"
       ]
      ],
@@ -276,7 +311,7 @@ window.TRACKER = {
      "items": [
       [
        "wip",
-       "I. The Consonants (pp. 1–8) — all 218 items drawn, awaiting Srihari's review"
+       "I. The Consonants (pp. 1–8) — round 1 reviewed and fixed; 104 unique outlines, 100 changed, awaiting Srihari's re-check"
       ],
       [
        "todo",
@@ -593,6 +628,14 @@ window.TRACKER = {
       [
        "todo",
        "Stroke-by-stroke drawing animation"
+      ],
+      [
+       "todo",
+       "Direction arrows on outlines (start dot + small arrowhead) and direction text per stroke (\"written downward / upward / left to right\")"
+      ],
+      [
+       "todo",
+       "Phonetics per stroke: IPA symbol, stroke name, our own example word; joined forms show the consonant sequence"
       ],
       [
        "todo",

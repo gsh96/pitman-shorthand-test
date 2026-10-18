@@ -36,7 +36,7 @@
 //     first up/down stroke; all-horizontal outlines above / on the line,
 //     horizontal grammalogues in 3rd position below the line
 import { v, add, sub, mul, dot, perpL, perpR, fromAngle, norm, len, rot, deg } from './geometry.js';
-import { buildStroke, translateStroke, endOf, startOf, pointAt, isHorizontal, hookPts, insideN } from './strokes.js';
+import { buildStroke, translateStroke, endOf, startOf, pointAt, isHorizontal, hookPts, insideN, withSweep } from './strokes.js';
 import { CAL } from './calibration.js';
 import { VOWELS, isVowel } from './vowels.js';
 
@@ -297,7 +297,10 @@ export function composeOutline(tokens, opts = {}) {
   const elements = [];
   cIdx.forEach((ci, k) => {
     const it = items[ci];
-    let s = buildStroke(it.name, { length: it.length, heavy: it.heavy, reverse: it.reverse });
+    // 2024 Ch. I Ex 3-4: horizontal curves (m, n, ng) joined to other strokes are
+    // printed flatter than when standing alone (sagitta ~0.13 vs 0.21 of the chord)
+    const flatH = cIdx.length > 1 && ['M', 'MP', 'N', 'NG'].includes(it.name) && it.length === 'normal';
+    let s = buildStroke(it.name, { length: it.length, heavy: it.heavy, reverse: it.reverse, sweep: flatH ? CAL.joinedHorizSweep : 90 });
     let vowelSide = null;
     if (it.hookEnd && it.hookEnd.startsWith('shun')) {
       const nextCi = cIdx[k + 1] ?? items.length, prevCi = k ? cIdx[k - 1] : -1;
@@ -331,6 +334,21 @@ export function composeOutline(tokens, opts = {}) {
     strokes.push(s);
     elements.push({ type: 'stroke', stroke: s });
   });
+  // strokes must not run over each other (Srihari, Ch. I review). When
+  // the stroke after a curve turns back sharply and would cross that curve,
+  // the curve is written with a flatter end (then the next curve too) so the
+  // two meet in a clean sharp angle.
+  for (let k = 1; k < strokes.length; k++) {
+    const ov = () => runsOver(strokes[k - 1], strokes[k]);
+    if (!ov()) continue;
+    const A = strokes[k - 1], B = strokes[k];
+    if (A.kind !== 'arc') continue; // a curve leaving a straight stroke is printed that way
+    if (!A.extras.length) for (const sw of [70, 60, 50, 45]) { strokes[k - 1] = withSweep(A, sw); if (!ov()) break; }
+    if (ov() && B.kind === 'arc' && !B.extras.length) for (const sw of [50, 40, 30]) { strokes[k] = withSweep(B, sw); if (!ov()) break; }
+    rules.push(`sharp joining ${A.name}-${B.name}: curve flattened so the strokes do not overlap`);
+    const ei = elements.findIndex((e) => e.type === 'stroke' && e.stroke === A); if (ei >= 0) elements[ei] = { type: 'stroke', stroke: strokes[k - 1] };
+    const ej = elements.findIndex((e) => e.type === 'stroke' && e.stroke === B); if (ej >= 0) elements[ej] = { type: 'stroke', stroke: strokes[k] };
+  }
   // 2024 Ch. I para 10: thick curves taper at both ends "except when a joining
   // such as v-g or b-ng is made": a thick stroke joined to a thick stroke stays
   // thick through the joint
@@ -360,7 +378,28 @@ export function composeOutline(tokens, opts = {}) {
   const position = opts.position ?? firstPlace ?? 2;
   const anchor = strokes.find((s) => !isHorizontal(s));
   let dy;
-  if (anchor) {
+  if (position === 2) {
+    // 2nd position (on the line), 2024 Ch. I Ex 1-4 prints:
+    //  * the first upstroke or downstroke rests ON the line: a downstroke ends on
+    //    it, an upstroke starts on it, its hook (w, y) or circle (h) sitting on
+    //    the line; the ink rests on the line, it does not hang below it
+    //  * horizontals (k g m n ng) are written on the line: one joined at line
+    //    level never dips below it (the outline is raised instead)
+    //  * strokes after the first may go through the line (pd, fr, sh p)
+    //  * all-horizontal outlines rest on the line
+    const ink = (s) => inkLow(s);
+    if (anchor) {
+      dy = -ink(anchor);
+      let lift = 0;
+      for (const s of strokes) {
+        if (s === anchor || !isHorizontal(s)) continue;
+        const ja = startOf(s).y + dy, jb = endOf(s).y + dy;
+        if (Math.min(ja, jb) > -0.12) lift = Math.max(lift, -(ink(s) + dy));
+      }
+      if (lift > 1e-6) { dy += lift; rules.push('horizontal written on the line: outline raised so it does not dip below'); }
+    } else dy = -Math.min(...strokes.map(ink));
+    rules.push('2nd position: first up/downstroke rests on the line');
+  } else if (anchor) {
     const ys = anchor.pts.map((p) => p.y);
     const lo = Math.min(...ys), hi = Math.max(...ys);
     dy = position === 1 ? 0.5 - lo : position === 2 ? -lo : -(lo + hi) / 2;
@@ -422,6 +461,41 @@ const SEMI = {
   caret: (R) => [v(-R, 0), v(0, R * 1.5), v(R, 0)],
   angle: (R) => [v(0, R * 2), v(0, 0), v(R * 1.4, 0)],
 };
+
+/** does stroke B (starting where A ends) cross A or run along it, away from the joint? */
+function runsOver(A, B) {
+  const J = A.pts[A.pts.length - 1];
+  const o = (p, q, r) => (q.x - p.x) * (r.y - p.y) - (q.y - p.y) * (r.x - p.x);
+  const X = (a, b, c, d) => o(a, b, c) * o(a, b, d) < 0 && o(c, d, a) * o(c, d, b) < 0;
+  const dseg = (p, a, b) => { const dx = b.x - a.x, dy = b.y - a.y, t = Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / (dx * dx + dy * dy || 1))); return Math.hypot(p.x - a.x - t * dx, p.y - a.y - t * dy); };
+  const gap = (CAL.light + (A.heavy || B.heavy ? CAL.heavy : CAL.light)) / 2 + 0.02;
+  let near = 0;
+  for (let i = 1; i < A.pts.length; i++) {
+    if (Math.hypot(A.pts[i].x - J.x, A.pts[i].y - J.y) < 0.12) continue;
+    for (let j = 1; j < B.pts.length; j++) {
+      if (Math.hypot(B.pts[j].x - J.x, B.pts[j].y - J.y) < 0.12) continue;
+      if (X(A.pts[i - 1], A.pts[i], B.pts[j - 1], B.pts[j])) return true;
+      if (dseg(B.pts[j], A.pts[i - 1], A.pts[i]) < gap) near++;
+    }
+  }
+  return near > 40; // only a long shared run counts; a tangent touch is how the book joins
+}
+
+/** stroke ink width at parameter t (matches render.js) */
+export function inkWidth(s, t) {
+  if (!s.heavy) return CAL.light;
+  if (s.kind === 'line') return CAL.heavy;
+  const full = (s.thickStart && t < 0.5) || (s.thickEnd && t > 0.5);
+  return CAL.light + (CAL.heavy - CAL.light) * (full ? 1 : Math.pow(Math.sin(Math.PI * t), 0.7));
+}
+/** lowest point of the ink of one stroke, its hooks and circles included */
+export function inkLow(s) {
+  const n = s.pts.length - 1;
+  let lo = Infinity;
+  s.pts.forEach((p, i) => { lo = Math.min(lo, p.y - inkWidth(s, i / n) / 2); });
+  for (const x of s.extras) lo = Math.min(lo, x.type === 'circle' ? x.c.y - x.r - CAL.light / 2 : Math.min(...x.pts.map((p) => p.y)) - CAL.light / 2);
+  return lo;
+}
 
 export function shift(elements, off) {
   const t = (p) => add(p, off);

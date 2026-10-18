@@ -70,7 +70,7 @@ export function hookPts(p, tan, n, r, atEnd, sweep = 180, tail = 0) {
 /** Build a bare stroke at the origin (no hooks/circles except the built-in
  *  W/Y hook and H circle). opts: length, heavy (thickening override),
  *  reverse (curve bows the other way: alternative FR/VR/THR forms). */
-export function buildStroke(name, { length = 'normal', heavy, reverse = false } = {}) {
+export function buildStroke(name, { length = 'normal', heavy, reverse = false, sweep = 90 } = {}) {
   const def = STROKES[name];
   if (!def) throw new Error(`unknown stroke ${name}`);
   const g = GEOM[def.geom || name];
@@ -84,17 +84,19 @@ export function buildStroke(name, { length = 'normal', heavy, reverse = false } 
   if (def.kind === 'line') {
     for (let i = 0; i <= N_SAMPLES; i++) pts.push(lerp(start, end, i / N_SAMPLES));
   } else {
-    const c = sub(mul(add(start, end), 0.5), mul(bulgeN, L / 2));
+    // circular arc on the chord; sweep 90 = quarter circle (sagitta 0.21 of the chord)
+    const ph = deg(sweep), R = L / (2 * Math.sin(ph / 2));
+    const c = sub(mul(add(start, end), 0.5), mul(bulgeN, R * Math.cos(ph / 2)));
     const r0 = sub(start, c);
-    const sense = Math.abs(add(c, rot(r0, deg(90))).x - end.x) + Math.abs(add(c, rot(r0, deg(90))).y - end.y) < 1e-6 ? 1 : -1;
-    for (let i = 0; i <= N_SAMPLES; i++) pts.push(add(c, rot(r0, sense * deg(90) * (i / N_SAMPLES))));
+    const sense = Math.abs(add(c, rot(r0, ph)).x - end.x) + Math.abs(add(c, rot(r0, ph)).y - end.y) < 1e-6 ? 1 : -1;
+    for (let i = 0; i <= N_SAMPLES; i++) pts.push(add(c, rot(r0, sense * ph * (i / N_SAMPLES))));
   }
   const extras = [];
   if (def.circle) {
     // 2024 Ch. I table / Ex 1-3: the circle sits behind the start, turned to
     // the right of the direction of writing: upward H = circle below and to the
     // right; downward H = the "9" shape (circle above, a little to the left).
-    const side = perpR(dir), a = deg(CAL.hCircleBack);
+    const side = perpR(dir), a = deg(def.up ? CAL.hCircleBackUp : CAL.hCircleBack);
     extras.push({ type: 'circle', c: add(start, mul(add(mul(side, Math.cos(a)), mul(dir, -Math.sin(a))), CAL.hCircle)), r: CAL.hCircle, heavy: false });
   }
   let entry = start;
@@ -105,7 +107,24 @@ export function buildStroke(name, { length = 'normal', heavy, reverse = false } 
     entry = hp[0];
   }
   const t0 = norm(sub(pts[1], pts[0])), t1 = norm(sub(pts[N_SAMPLES], pts[N_SAMPLES - 1]));
-  return { name, def, length: L, dir, pts, extras, heavy: heavy ?? def.heavy, up: !!def.up, kind: def.kind, bulgeN, t0, t1, entry, exit: end, reverse };
+  return { name, def, length: L, dir, pts, extras, heavy: heavy ?? def.heavy, up: !!def.up, kind: def.kind, bulgeN, t0, t1, entry, exit: end, reverse, sweep };
+}
+
+/** points of a circular arc from a to b bowing to side bulgeN, `sweep` degrees */
+export function arcPts(a, b, bulgeN, sweep) {
+  const L = Math.hypot(b.x - a.x, b.y - a.y), ph = deg(sweep), R = L / (2 * Math.sin(ph / 2));
+  const c = sub(mul(add(a, b), 0.5), mul(bulgeN, R * Math.cos(ph / 2)));
+  const r0 = sub(a, c);
+  const sense = Math.abs(add(c, rot(r0, ph)).x - b.x) + Math.abs(add(c, rot(r0, ph)).y - b.y) < 1e-6 ? 1 : -1;
+  const pts = [];
+  for (let i = 0; i <= N_SAMPLES; i++) pts.push(add(c, rot(r0, sense * ph * (i / N_SAMPLES))));
+  return pts;
+}
+/** same arc stroke redrawn with another sweep (chord, ends and side unchanged) */
+export function withSweep(s, sweep) {
+  const a = s.pts[0], b = s.pts[s.pts.length - 1];
+  const pts = arcPts(a, b, s.bulgeN, sweep);
+  return { ...s, pts, sweep, t0: norm(sub(pts[1], pts[0])), t1: norm(sub(pts[N_SAMPLES], pts[N_SAMPLES - 1])) };
 }
 
 export function translateStroke(s, off) {
